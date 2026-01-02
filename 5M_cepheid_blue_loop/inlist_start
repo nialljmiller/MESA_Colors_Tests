@@ -26,7 +26,7 @@
    kap_lowT_prefix = 'lowT_fa05_a09p'
    kap_CO_prefix = 'a09_co'
 
-   Zbase = 0.008
+   Zbase = 0.014
 
    use_Type2_opacities = .true.
 
@@ -41,9 +41,9 @@
    ! limit max_model_number as part of test_suite
    max_model_number = 6000
 
-   initial_mass = 5 ! in Msun units
+   initial_mass = 5.0
+   initial_z = 0.014
    initial_Y = 0.256d0
-   initial_Z = 0.008d0
    
    energy_eqn_option = 'dedt'
 
