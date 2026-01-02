@@ -10,7 +10,7 @@
       save_model_when_terminate = .true.
       save_model_filename = 'final.mod'
 
-      initial_zfracs = 6
+      !initial_zfracs = 6
 
       set_initial_age = .true.
       initial_age = 0

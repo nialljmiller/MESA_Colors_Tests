@@ -12,8 +12,6 @@
    change_initial_net = .true.      
    new_net_name = 'pp_cno_extras_o18_ne22.net'
 
-   initial_zfracs = 6
-   
    pgstar_flag = .true.
 
 / !end of star_job namelist
@@ -50,8 +48,9 @@
    energy_eqn_option = 'dedt'
 
    mixing_length_alpha = 1.8d0
-!   MLT_option = 'Cox'
-steps_before_use_TDC = 10
+   MLT_option = 'Cox'
+   
+   steps_before_use_TDC = 10
 
    use_Ledoux_criterion = .true.
    alpha_semiconvection = 0.1
@@ -141,5 +140,26 @@ steps_before_use_TDC = 10
 
 / ! end of pgstar namelist
 
+&colors
+
+   use_colors = .true.
+
+   ! Atmosphere grid
+   stellar_atm = '/data/colors_data/stellar_models/combined_models/'
+
+   ! Filter set — LSST for survey-era demonstration
+   instrument = '/data/colors_data/filters/Rubin/LSST'
+
+   ! Distance: 10 pc for absolute magnitudes
+   distance = 3.0857d19
+
+   ! AB system for LSST
+   mag_system = 'AB'
+
+   ! Diagnostics
+   colors_results_directory = 'COLORS_OUTPUT'
+   make_csv = .false.
+
+/ ! end of colors namelist
 
 
