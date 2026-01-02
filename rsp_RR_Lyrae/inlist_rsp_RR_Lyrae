@@ -1,6 +1,5 @@
-!  long-period RR Lyrae star: M=0.65Ms, L=60Ls, Teff=6500K, X=0.75, Z=0.0004
-
-! original test case contributed by Radek Smolec.
+! High-amplitude pulsator for demonstrating rapid photometric variability
+! Optimized for maximum temporal resolution with colors module
 
 &star_job
 
@@ -12,11 +11,6 @@
       save_model_filename = 'final.mod'
 
       initial_zfracs = 6
-
-      ! old color module (deprecated)
-      !color_num_files=2
-      !color_file_names(2)='blackbody_johnson.dat'
-      !color_num_colors(2)=5
 
       set_initial_age = .true.
       initial_age = 0
@@ -34,7 +28,7 @@
 
 
 &kap
-   Zbase = 0.0004d0
+   Zbase = 0.001d0
 
       kap_file_prefix = 'a09'
       kap_lowT_prefix = 'lowT_fa05_a09p'
@@ -45,71 +39,89 @@
 
 &controls
 
-   ! limit max_model_number as part of test_suite
-   max_model_number = 15000
+   ! Run for enough cycles to see variability
+   max_model_number = 50000
    use_gold2_tolerances = .true.
 
-! RSP controls
+! ============================================================
+! RSP STELLAR PARAMETERS
+! ============================================================
+! Option A: High-amplitude delta Scuti (HADS) - VERY short period (~2 hours)
+!           Most dramatic for demonstrating rapid variability
+   RSP_mass = 1.8d0
+   RSP_Teff = 7500d0
+   RSP_L = 20d0
+   RSP_X = 0.70d0
+   RSP_Z = 0.001d0
 
-   x_integer_ctrl(1) = 10 ! which period to check
-   x_ctrl(1) = 0.71262d0 ! expected period (in days)
+! Option B: BL Herculis (Type II Cepheid) - dramatic light curve, ~1-4 day period
+!           Good balance of amplitude and period
+!   RSP_mass = 0.55d0
+!   RSP_Teff = 6100d0
+!   RSP_L = 200d0
+!   RSP_X = 0.75d0
+!   RSP_Z = 0.001d0
 
-   RSP_mass = 0.65d0
-   RSP_Teff = 6500d0
-   RSP_L = 60d0
-   RSP_X = 0.75d0
-   RSP_Z = 0.0004d0
+! Option C: RR Lyrae (your original) - ~0.7 day period, well-studied
+!   RSP_mass = 0.65d0
+!   RSP_Teff = 6500d0
+!   RSP_L = 60d0
+!   RSP_X = 0.75d0
+!   RSP_Z = 0.0004d0
 
+! ============================================================
+! TEMPORAL RESOLUTION CONTROLS - KEY FOR RAPID VARIABILITY
+! ============================================================
 
-! output controls
+   ! Steps per pulsation cycle - HIGHER = finer time resolution
+   ! Default is ~600, increase for more detail
+   RSP_target_steps_per_cycle = 1000
+   
+   ! Maximum timestep (seconds) - limits how coarse steps can get
+   ! Smaller = finer resolution but slower
+   RSP_max_dt = 100d0  ! 100 seconds max per step
+   
+   ! Initial velocity kick to start pulsations
+   RSP_kick_vsurf_km_per_sec = 1.0d0
+
+! ============================================================
+! OUTPUT CONTROLS - CAPTURE EVERY TIMESTEP
+! ============================================================
 
    terminal_show_age_units = 'days'
    terminal_show_timestep_units = 'secs'
    terminal_show_log_dt = .false.
    terminal_show_log_age = .false.
 
-      !num_trace_history_values = 2
-      trace_history_value_name(1) = 'rel_E_err'
-      trace_history_value_name(2) = 'log_rel_run_E_err'
+   ! CRITICAL: Set to 1 to record colors at EVERY RSP timestep
+   history_interval = 1
+   
+   ! Other output intervals
+   photo_interval = 5000
+   profile_interval = 5000
+   terminal_interval = 1000
 
-   ! for cases in which you have a run that has reached steady pulses
-   ! and you want to look at plots of just a few periods to see the details,
-   ! i suggest the following method. interrupt the run soon after
-   ! it makes a photo.  remove or delete LOGS/history.data to force
-   ! creation of a new one when restart.  edit the inlist to set
-   ! history_interval to 1 to get maximum time resolution.
-   ! restart the run and let it go for as many periods as desired.
-
-      photo_interval = 1000
-      profile_interval = 4000
-      history_interval = 10
-      terminal_interval = 4000
+   ! Trace values for monitoring
+   trace_history_value_name(1) = 'rel_E_err'
+   trace_history_value_name(2) = 'log_rel_run_E_err'
 
 / ! end of controls namelist
 
 
 &pgstar
 
-      !pause_flag = .true.
-
-      pgstar_interval = 6
+      pgstar_interval = 10
 
       Grid2_win_flag = .true.
-
-
-      Grid2_title = '0.65 M\d\(2281)\u  Z=0.0004  RR Lyrae'
-
+      Grid2_title = 'BL Her - Rapid Variability Demo'
 
       History_Panels1_xaxis_name='star_age_day'
-      History_Panels1_max_width = 365 ! only used if > 0.  causes xmin to move with xmax.
+      History_Panels1_max_width = 10 ! Show ~10 days of data
 
-      !  Grid2_file_flag = .true.
       file_digits = 7
       Grid2_file_dir = 'png'
       Grid2_file_prefix = 'grid'
-      Grid2_file_interval = 5 ! output when mod(model_number,Grid2_file_interval)==0
-
-      !Profile_Panels1_show_grid = .true.
+      Grid2_file_interval = 100
 
       Profile_Panels1_xaxis_name = 'logtau'
       Profile_Panels1_xaxis_reversed = .true.
@@ -121,28 +133,28 @@
 / ! end of pgstar namelist
 
 
-
-
-
 &colors
 
-   ! Custom colors module for calculating synthetic magnitudes
-   ! Author: Niall Miller, Meridith Joyce, Philip Mocz & The MESAteam
+   ! Colors module - synthetic photometry at every RSP timestep
+   use_colors = .true.
+   
+   ! Filter system - Johnson for classic B, V magnitudes
+   instrument = '/data/colors_data/filters/Generic/Johnson'
+   
+   ! Magnitude system
+   mag_system = 'Vega'
 
-      use_colors = .true.                      ! Activate synthetic photometry calculations
-      
-      ! Filter transmission curves directory
-      instrument = '/colors/data/filters/GAIA/GAIA'
-      
-      ! Vega spectrum for zero-point magnitude calibration
-      vega_sed = '/colors/data/stellar_models/vega_flam.csv'
-      
-      ! Directory containing stellar atmosphere SEDs for interpolation
-      stellar_atm = '/colors/data/stellar_models/Kurucz2003all/'
-      
-      distance = 3.0857d19         ! Distance to star in cm
-      
-      colors_results_directory = 'SED'        ! Directory for detailed SED output files
-      make_csv = .true.                       ! Generate detailed CSV files showing:
+   ! Vega spectrum for zero-point
+   vega_sed = '/data/colors_data/stellar_models/vega_flam.csv'
+
+   ! Stellar atmosphere models
+   stellar_atm = '/data/colors_data/stellar_models/Kurucz2003all/'
+   
+   ! Distance (10 pc for absolute magnitudes)
+   distance = 3.0857d19
+   
+   ! Output detailed SEDs
+   colors_results_directory = 'SED'
+   make_csv = .true.
 
 / ! end of colors namelist

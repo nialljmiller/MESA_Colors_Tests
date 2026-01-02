@@ -1,0 +1,24 @@
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:   3.87
+      model_number:         7220
+      star_age:     2.1564353323325187E-02
+      num_retries:            0
+      log_rel_run_E_err:        -8.1842591650332128
+      steps:         7220
+      retries:            0
+      redos:            0
+      solver_calls_made:         7220
+      solver_calls_failed:            0
+      solver_iterations:        21016
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
