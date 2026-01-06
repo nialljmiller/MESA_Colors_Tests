@@ -1,5 +1,10 @@
-! High-amplitude pulsator for demonstrating rapid photometric variability
-! Optimized for maximum temporal resolution with colors module
+! RR Lyrae model for demonstrating MESA Colors with RSP
+! Captures phase-resolved synthetic photometry at native RSP timestep resolution
+! 
+! Reference model: M=0.65 Msun, L=60 Lsun, Teff=6500 K, Z=0.0004
+! Expected period: ~0.71 days (fundamental mode)
+!
+! For MESA Colors paper Section: Radial Stellar Pulsations
 
 &star_job
 
@@ -10,7 +15,7 @@
       save_model_when_terminate = .true.
       save_model_filename = 'final.mod'
 
-      !initial_zfracs = 6
+      initial_zfracs = 6
 
       set_initial_age = .true.
       initial_age = 0
@@ -28,7 +33,7 @@
 
 
 &kap
-   Zbase = 0.001d0
+      Zbase = 0.0004d0
 
       kap_file_prefix = 'a09'
       kap_lowT_prefix = 'lowT_fa05_a09p'
@@ -39,69 +44,60 @@
 
 &controls
 
-   ! Run for enough cycles to see variability
-   max_model_number = 50000
+   ! ============================================================
+   ! RUN CONTROLS
+   ! ============================================================
+   ! Run for ~15 complete pulsation cycles to demonstrate variability
+   ! With ~1000 steps/cycle, this is ~15000 models
+   max_model_number = 20000
    use_gold2_tolerances = .true.
 
-! ============================================================
-! RSP STELLAR PARAMETERS
-! ============================================================
-! Option A: High-amplitude delta Scuti (HADS) - VERY short period (~2 hours)
-!           Most dramatic for demonstrating rapid variability
-   RSP_mass = 1.8d0
-   RSP_Teff = 7500d0
-   RSP_L = 20d0
-   RSP_X = 0.70d0
-   RSP_Z = 0.001d0
+   ! ============================================================
+   ! RSP STELLAR PARAMETERS - RR Lyrae (fundamental mode)
+   ! ============================================================
+   ! Classic RR Lyrae: well-documented, ~0.71 day period
+   ! This matches the text in the paper
+   RSP_mass = 0.65d0
+   RSP_Teff = 6500d0
+   RSP_L = 60d0
+   RSP_X = 0.75d0
+   RSP_Z = 0.0004d0
 
-! Option B: BL Herculis (Type II Cepheid) - dramatic light curve, ~1-4 day period
-!           Good balance of amplitude and period
-!   RSP_mass = 0.55d0
-!   RSP_Teff = 6100d0
-!   RSP_L = 200d0
-!   RSP_X = 0.75d0
-!   RSP_Z = 0.001d0
+   ! Check period matches expected value
+   x_integer_ctrl(1) = 10  ! which period to check
+   x_ctrl(1) = 0.71262d0   ! expected period (days)
 
-! Option C: RR Lyrae (your original) - ~0.7 day period, well-studied
-!   RSP_mass = 0.65d0
-!   RSP_Teff = 6500d0
-!   RSP_L = 60d0
-!   RSP_X = 0.75d0
-!   RSP_Z = 0.0004d0
-
-! ============================================================
-! TEMPORAL RESOLUTION CONTROLS - KEY FOR RAPID VARIABILITY
-! ============================================================
-
-   ! Steps per pulsation cycle - HIGHER = finer time resolution
-   ! Default is ~600, increase for more detail
+   ! ============================================================
+   ! TEMPORAL RESOLUTION - CRITICAL FOR COLORS DEMONSTRATION
+   ! ============================================================
+   ! Target ~1000 timesteps per pulsation cycle
+   ! For P~0.71 day, this gives dt ~ 60 seconds
    RSP_target_steps_per_cycle = 1000
    
-   ! Maximum timestep (seconds) - limits how coarse steps can get
-   ! Smaller = finer resolution but slower
-   RSP_max_dt = 100d0  ! 100 seconds max per step
+   ! Cap maximum timestep at 100 seconds for smooth sampling
+   RSP_max_dt = 100d0
    
-   ! Initial velocity kick to start pulsations
+   ! Initial velocity kick to excite pulsations
    RSP_kick_vsurf_km_per_sec = 1.0d0
 
-! ============================================================
-! OUTPUT CONTROLS - CAPTURE EVERY TIMESTEP
-! ============================================================
+   ! ============================================================
+   ! OUTPUT CONTROLS - CAPTURE EVERY TIMESTEP
+   ! ============================================================
+   ! CRITICAL: history_interval = 1 ensures colors computed at every RSP step
+   history_interval = 1
+   
+   ! Reduce other output to manage file sizes
+   photo_interval = 5000
+   profile_interval = 5000
+   terminal_interval = 500
 
+   ! Terminal display settings
    terminal_show_age_units = 'days'
    terminal_show_timestep_units = 'secs'
    terminal_show_log_dt = .false.
    terminal_show_log_age = .false.
 
-   ! CRITICAL: Set to 1 to record colors at EVERY RSP timestep
-   history_interval = 1
-   
-   ! Other output intervals
-   photo_interval = 5000
-   profile_interval = 5000
-   terminal_interval = 1000
-
-   ! Trace values for monitoring
+   ! Trace energy conservation
    trace_history_value_name(1) = 'rel_E_err'
    trace_history_value_name(2) = 'log_rel_run_E_err'
 
@@ -110,18 +106,18 @@
 
 &pgstar
 
-      pgstar_interval = 10
+      pgstar_interval = 20
 
       Grid2_win_flag = .true.
-      Grid2_title = 'BL Her - Rapid Variability Demo'
+      Grid2_title = '0.65 M\d\(2281)\u  Z=0.0004  RR Lyrae + Colors'
 
-      History_Panels1_xaxis_name='star_age_day'
-      History_Panels1_max_width = 10 ! Show ~10 days of data
+      History_Panels1_xaxis_name = 'star_age_day'
+      History_Panels1_max_width = 5  ! Show ~5 days (~7 cycles)
 
       file_digits = 7
       Grid2_file_dir = 'png'
       Grid2_file_prefix = 'grid'
-      Grid2_file_interval = 100
+      Grid2_file_interval = 500
 
       Profile_Panels1_xaxis_name = 'logtau'
       Profile_Panels1_xaxis_reversed = .true.
@@ -135,26 +131,31 @@
 
 &colors
 
-   ! Colors module - synthetic photometry at every RSP timestep
+   ! ============================================================
+   ! MESA COLORS MODULE - Synthetic Photometry
+   ! ============================================================
+   ! Computes synthetic magnitudes at every history output (every RSP timestep)
+   
    use_colors = .true.
    
-   ! Filter system - Johnson for classic B, V magnitudes
-   instrument = '/data/colors_data/filters/Generic/Johnson'
+   ! Johnson UBVRI filter system - classic for variable star work
+   instrument = '/colors/data/filters/Generic/Johnson'
    
-   ! Magnitude system
+   ! Vega magnitude system (standard for variable star photometry)
    mag_system = 'Vega'
 
-   ! Vega spectrum for zero-point
-   vega_sed = '/data/colors_data/stellar_models/vega_flam.csv'
+   ! Vega reference spectrum for zero-point calibration
+   vega_sed = '/colors/data/stellar_models/vega_flam.csv'
 
-   ! Stellar atmosphere models
-   stellar_atm = '/data/colors_data/stellar_models/Kurucz2003all/'
+   ! Stellar atmosphere models for SED interpolation
+   stellar_atm = '/colors/data/stellar_models/Kurucz2003all/'
    
-   ! Distance (10 pc for absolute magnitudes)
+   ! Distance: 10 pc = 3.0857e19 cm for absolute magnitudes
+   ! (or use 1 kpc = 3.0857e21 cm for apparent magnitudes at typical RR Lyrae distances)
    distance = 3.0857d19
    
-   ! Output detailed SEDs
+   ! Output detailed SEDs for diagnostics (optional - creates large files)
    colors_results_directory = 'SED'
-   make_csv = .true.
+   make_csv = .false.  ! Set to .true. if you want SED files
 
 / ! end of colors namelist

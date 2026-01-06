@@ -162,3 +162,27 @@
    HR_logL_max = 2.0
 
 / ! end of pgstar namelist
+
+
+&colors
+
+   use_colors = .true.
+
+   ! Atmosphere grid
+   stellar_atm = '/data/colors_data/stellar_models/Kurucz2003all/'
+
+   ! Filter set — LSST for survey-era demonstration
+   instrument = '/data/colors_data/filters/LSST/LSST'
+
+   ! Distance: 10 pc for absolute magnitudes
+   distance = 3.0857d19
+
+   ! AB system for LSST
+   mag_system = 'AB'
+
+   ! Diagnostics
+   colors_results_directory = 'COLORS_OUTPUT'
+   make_csv = .false.
+
+/ ! end of colors namelist
+

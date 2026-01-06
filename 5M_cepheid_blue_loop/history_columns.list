@@ -9,6 +9,7 @@
 model_number
 star_age
 log_dt
+phase_of_evolution
 
 !----------------------------------------------------------------------------------------------
 ! Surface properties — inputs to Colors
@@ -26,7 +27,6 @@ Teff
 
 surface_h1
 surface_he4
-log_surface_z
 
 center_h1
 center_he4

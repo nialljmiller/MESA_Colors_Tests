@@ -1,64 +1,95 @@
-.. _rsp_RR_Lyrae:
+.. _rsp_colors_demo:
 
-************
-rsp_RR_Lyrae
-************
+*****************************
+RSP + Colors Demonstration
+*****************************
 
-This test case checks the non-linear pulsation evolution of a 0.65 |Msun|, Teff = 6500 K, L = 60 Lsun, Z = 0.004 metallicity -
-a long-period RR Lyrae model contributed by Radek Smolec.
+This test case demonstrates MESA Colors computing phase-resolved synthetic 
+photometry during Radial Stellar Pulsation (RSP) evolution of an RR Lyrae star.
 
-This test case has 1 part. Click to see a larger version of a plot.
+Physical Setup
+==============
 
-* Part 1 (``inlist_rsp_rsp_RR_Lyrae``) creates the initial 0.65 |Msun|, Teff = 6500 K, L = 60 Lsun, Z = 0.004 metallicity model, and writes the results of conducting a linear nonadiabatic stability analysis to the LOGS directory (see Section 2.2 of |MESA V| for details). The evolution with RSP then begins. After 10 periods, the ``run_star_extras.f90`` checks if the energy conservation is less than 1e-5 and if fundamental period is within 1% of the expected 0.71262 day period. If these values are within bounds, then a message is written to the terminal and the run terminates:
+The model is a fundamental-mode RR Lyrae pulsator with:
 
-.. code-block:: console
+- Mass: 0.65 |Msun|
+- Luminosity: 60 |Lsun|
+- Effective Temperature: 6500 K
+- Metallicity: Z = 0.0004
+- Expected Period: ~0.71 days
 
- rel_run_E_err   4.3566232972447423E-011
- good match for period  0.71063341179217354       0.71262000000000003
+Key Configuration
+=================
 
+This demonstration showcases the advantage of runtime synthetic photometry
+by capturing colors at every RSP timestep:
 
-.. image:: ../../../star/test_suite/rsp_RR_Lyrae/docs/grid_0007220.svg
-   :width: 100%
+.. code-block:: fortran
 
-pgstar commands, in addition to those in ``inlist_rsp_pgstar_default``, used for the plot above:
+   ! ~1000 timesteps per pulsation cycle
+   RSP_target_steps_per_cycle = 1000
+   
+   ! Record colors at EVERY timestep
+   history_interval = 1
+   
+   ! Johnson UBVRI filter system
+   instrument = '/colors/data/filters/Generic/Johnson'
+   mag_system = 'Vega'
 
-.. code-block:: console
+With these settings, the simulation produces approximately 1000 synthetic 
+magnitude measurements per 0.71-day pulsation cycle—far exceeding the 
+temporal resolution achievable through post-processing approaches.
 
- &pgstar
+Output
+======
 
-  file_white_on_black_flag = .true. ! white_on_black flags -- true means white foreground color on black background
-  !file_device = 'png'            ! png
+The ``history.data`` file contains:
 
-  file_device = 'vcps'          ! postscript
+- Standard RSP outputs: ``rsp_phase``, ``rsp_period_in_days``, ``rsp_DeltaMag``
+- Synthetic magnitudes: ``U``, ``B``, ``V``, ``R``, ``I`` (absolute magnitudes)
+- Stellar parameters: ``log_Teff``, ``log_L``, ``photosphere_r``
 
-  pgstar_interval = 100
+Generating Figures
+==================
 
-      pgstar_age_scale = 0.8
-      pgstar_age_lw = 3
-      pgstar_age_disp = 3.9
-      pgstar_age_coord = -0.11
-      pgstar_age_fjust = 0.0
+After running the model, generate the paper figures with:
 
-      pgstar_model_disp = 3.9
+.. code-block:: bash
 
-      History_Panels2_txt_scale = 0.7
-      Profile_Panels2_txt_scale = 0.6
-      logL_R_txt_scale = 0.7
-      logL_v_txt_scale = 0.7
-      logL_Teff_txt_scale = 0.7
+   python plot_rsp_figures.py LOGS/history.data
 
-       Grid2_win_flag = .true.
-       Grid2_win_width = 12
-       Grid2_title = 'rsp_RR_Lyrae'
-       Grid2_txt_scale_factor(:) = 1.0
+This produces:
 
-        Grid2_file_flag = .true.
-        Grid2_file_dir = 'pgstar_out'
-        Grid2_file_prefix = 'grid_'
-        Grid2_file_interval = 10000
-        Grid2_file_width = -1
-        Grid2_file_aspect_ratio = -1
+1. ``rsp_lightcurve.pdf`` - Multi-band light curves showing:
+   
+   - Wavelength-dependent amplitude (B > V > R > I)
+   - Phase offset between bands (B maximum precedes I maximum)
+   - Smooth sampling of rapid rise to maximum
 
- / ! end of pgstar namelist
+2. ``rsp_colorloop.pdf`` - Color-magnitude diagram showing:
+   
+   - Counterclockwise hysteresis loop in (B-V, V) space
+   - Different colors at same magnitude on rising vs falling branches
+   - Direct observable signature of pulsation dynamics
 
-Last-Updated: 27Jun2021 (MESA e2acbc2) by fxt.
+Scientific Context
+==================
+
+This demonstration is relevant for:
+
+- **LSST**: Multi-band time-domain photometry of millions of RR Lyrae stars
+- **Roman GBTDS**: Infrared light curves of bulge pulsating variables
+- **PLATO**: Asteroseismic characterization of classical pulsators
+
+The ability to generate synthetic photometry at native RSP cadence enables
+direct forward-modeling of observed light curves without temporal interpolation,
+facilitating period-luminosity-color calibrations and variable star population
+synthesis.
+
+Reference
+=========
+
+See Section X.X of Miller, Joyce, Mocz et al. (2025), "MESA Colors: Synthetic 
+Photometry During Stellar Evolution with MESA"
+
+Last Updated: 2025

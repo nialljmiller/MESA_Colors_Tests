@@ -3,8 +3,9 @@
 ! 15140+ history_columns.list options -- evolutionary quantities
 
 model_number
-star_mass
 star_age
+log_dt
+phase_of_evolution
 
 log_R
 log_Teff ! log10 effective temperature
