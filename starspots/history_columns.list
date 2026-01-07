@@ -1,0 +1,33 @@
+! history_columns.list for starspots demonstration
+! Focused on photometric and atmospheric properties
+
+! Model info
+model_number
+star_age
+star_mass
+
+! Fundamental parameters
+log_L
+log_Teff
+log_R
+log_g
+
+! Surface properties
+photosphere_cell_T
+photosphere_cell_opacity
+
+! Convection zone info
+cz_bot_mass
+cz_top_mass
+
+! Asteroseismic (for completeness)
+nu_max
+delta_nu
+
+! Core abundances
+center h1
+center he4
+
+! Surface abundances  
+surface h1
+surface he4

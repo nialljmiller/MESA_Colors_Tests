@@ -110,48 +110,112 @@ def read_header_columns(history_file):
 
     return all_cols, filter_columns
 
-
 def setup_hr_diagram_params(md, filter_columns):
     """Set up parameters for HR diagram based on available filters."""
-    if "Gbp" in filter_columns and "Grp" in filter_columns and "G" in filter_columns:
-        hr_color = md.Gbp - md.Grp
-        hr_mag = md.G
+
+    # Normalize for case-insensitive lookup
+    filters = {f: f for f in filter_columns}
+    filters_lower = {f.lower(): f for f in filter_columns}
+
+    # Helper for safe getattr / md.data
+    def get_col(col):
+        try:
+            return getattr(md, col)
+        except AttributeError:
+            return md.data(col)
+
+    # 1) Gaia — if all three present (case-insensitive)
+    if "gbp" in filters_lower and "grp" in filters_lower and "g" in filters_lower:
+        f_gbp = filters_lower["gbp"]
+        f_grp = filters_lower["grp"]
+        f_g   = filters_lower["g"]
+        hr_color  = get_col(f_gbp) - get_col(f_grp)
+        hr_mag    = get_col(f_g)
         hr_xlabel = "Gbp - Grp"
         hr_ylabel = "G"
         color_index = hr_color
-    elif "V" in filter_columns and "B" in filter_columns and "R" in filter_columns:
-        hr_color = md.B - md.R
-        hr_mag = md.V
-        hr_xlabel = "B - R"
-        hr_ylabel = "V"
-        color_index = hr_color
-    else:
-        if len(filter_columns) >= 2:
-            # Use the first two filters
-            f1 = filter_columns[0]
-            f2 = filter_columns[1]
 
-            # Retrieve the data using getattr or data method
-            try:
-                col1 = getattr(md, f1)
-                col2 = getattr(md, f2)
-            except AttributeError:
-                col1 = md.data(f1)
-                col2 = md.data(f2)
+    # 2) Expanded Johnson/UBV-like logic
+    elif "v" in filters_lower:
+        V = filters_lower["v"]
 
-            hr_color = col1 - col2
-            hr_mag = col1
-            hr_xlabel = f"{f1} - {f2}"
-            hr_ylabel = f1
+        # Try B-R first
+        if "b" in filters_lower and "r" in filters_lower:
+            B = filters_lower["b"]
+            R = filters_lower["r"]
+            hr_color  = get_col(B) - get_col(R)
+            hr_mag    = get_col(V)
+            hr_xlabel = "B - R"
+            hr_ylabel = "V"
             color_index = hr_color
+
+        # Then B-V
+        elif "b" in filters_lower:
+            B = filters_lower["b"]
+            hr_color  = get_col(B) - get_col(V)
+            hr_mag    = get_col(V)
+            hr_xlabel = "B - V"
+            hr_ylabel = "V"
+            color_index = hr_color
+
+        # Then V-R
+        elif "r" in filters_lower:
+            R = filters_lower["r"]
+            hr_color  = get_col(V) - get_col(R)
+            hr_mag    = get_col(V)
+            hr_xlabel = "V - R"
+            hr_ylabel = "V"
+            color_index = hr_color
+
         else:
-            # Default values if not enough filters
-            print("Warning: Not enough filter columns to construct color index")
-            hr_color = np.zeros_like(md.Teff)
-            hr_mag = np.zeros_like(md.Teff)
-            hr_xlabel = "Color Index"
-            hr_ylabel = "Magnitude"
-            color_index = hr_color
+            # Not enough for a full Johnson-like color
+            hr_color = None
+
+    # 3) Sloan/ugriz-like “g-r”
+    elif "g" in filters_lower and "r" in filters_lower:
+        g = filters_lower["g"]
+        r = filters_lower["r"]
+        hr_color  = get_col(g) - get_col(r)
+        hr_mag    = get_col(g)
+        hr_xlabel = "g - r"
+        hr_ylabel = "g"
+        color_index = hr_color
+
+    # 4) If none of the above matched but we *have at least two*
+    else:
+        hr_color = None
+
+    # If something valid was set above (e.g., hr_color != None)
+    if hr_color is not None:
+        return hr_color, hr_mag, hr_xlabel, hr_ylabel, color_index
+
+    # --- FALLBACK: original last-two logic ---
+    if len(filter_columns) >= 2:
+        # Use the first and last filters
+        f1 = filter_columns[0]
+        f2 = filter_columns[-1]
+
+        try:
+            col1 = get_col(f1)
+            col2 = get_col(f2)
+        except Exception:
+            col1 = get_col(f1)
+            col2 = get_col(f2)
+
+        hr_color = col1 - col2
+        hr_mag   = col1
+        hr_xlabel = f"{f1} - {f2}"
+        hr_ylabel = f1
+        color_index = hr_color
+
+    else:
+        # Not enough filters — default arrays
+        print("Warning: Not enough filter columns to construct color index")
+        hr_color = np.zeros_like(md.Teff)
+        hr_mag   = np.zeros_like(md.Teff)
+        hr_xlabel = "Color Index"
+        hr_ylabel = "Magnitude"
+        color_index = hr_color
 
     return hr_color, hr_mag, hr_xlabel, hr_ylabel, color_index
 

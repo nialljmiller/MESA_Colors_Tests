@@ -1,0 +1,126 @@
+! =============================================================================
+! STAGE 1: Evolve a 1 Msun star to the white dwarf cooling sequence
+! =============================================================================
+! This inlist creates a white dwarf by evolving a low-mass star through
+! its entire lifetime: pre-MS -> MS -> RGB -> AGB -> PN -> WD
+!
+! The colors module is DISABLED here to speed up computation.
+! Colors will be enabled in Stage 2 (inlist_cool_wd).
+!
+! Expected runtime: Several hours depending on hardware
+! Output: wd_start.mod - a WD model ready for cooling sequence study
+! =============================================================================
+
+&star_job
+      show_log_description_at_start = .false.
+
+      ! Start from pre-main sequence
+      create_pre_main_sequence_model = .true.
+
+      ! Save the WD model for Stage 2
+      save_model_when_terminate = .true.
+      save_model_filename = 'wd_start.mod'
+
+      ! Use Skye EOS for proper WD physics
+      ! This handles electron degeneracy correctly
+      eos_file_prefix = 'mesa'
+
+      ! History columns - include WD-relevant quantities
+      history_columns_file = 'history_columns.list'
+
+      ! Relaxation settings
+      pre_ms_relax_num_steps = 50
+
+      pgstar_flag = .false.  ! Disable plotting for speed
+/
+
+
+&eos
+      ! Skye EOS handles degenerate matter properly
+      ! Essential for accurate WD structure
+/
+
+
+&kap
+      Zbase = 0.02d0
+      kap_file_prefix = 'gs98'
+      kap_lowT_prefix = 'lowT_fa05_gs98'
+/
+
+
+&colors
+      ! Colors DISABLED for Stage 1 (speed)
+      ! Will enable in Stage 2 once WD is formed
+      use_colors = .false.
+/
+
+
+&controls
+      ! ========================================
+      ! INITIAL STELLAR PARAMETERS
+      ! ========================================
+      ! 1.0 Msun produces a typical ~0.54 Msun WD
+      initial_mass = 1.0d0
+      initial_z = 0.02d0
+      initial_y = 0.28d0
+
+      ! ========================================
+      ! MASS LOSS - Critical for WD formation
+      ! ========================================
+      ! RGB mass loss (Reimers)
+      RGB_wind_scheme = 'Reimers'
+      Reimers_scaling_factor = 0.5d0
+
+      ! AGB mass loss (Blocker) - drives PN ejection
+      AGB_wind_scheme = 'Blocker'
+      Blocker_scaling_factor = 0.2d0
+
+      ! ========================================
+      ! STOPPING CONDITION
+      ! ========================================
+      ! Stop when star has cooled to WD cooling track
+      ! Teff ~ 30,000 K and high log_g indicates WD
+      log_L_lower_limit = -1.5d0  ! Stop at L ~ 0.03 Lsun
+
+      ! Backup stopping conditions
+      max_age = 15d9             ! 15 Gyr max
+      max_model_number = 50000   ! Safety limit
+
+      ! ========================================
+      ! OUTPUT CONTROL
+      ! ========================================
+      history_interval = 5
+      profile_interval = 100
+      terminal_interval = 50
+
+      photo_interval = 500
+      photo_digits = 6
+
+      ! ========================================
+      ! NUMERICAL CONTROLS
+      ! ========================================
+      varcontrol_target = 1d-3
+      mesh_delta_coeff = 1.0d0
+
+      ! Allow thermal pulses to proceed
+      max_timestep_factor = 1.05d0
+
+      ! ========================================
+      ! MIXING AND CONVECTION
+      ! ========================================
+      mixing_length_alpha = 1.82d0
+
+      ! Overshooting
+      overshoot_scheme(1) = 'exponential'
+      overshoot_zone_type(1) = 'burn_H'
+      overshoot_zone_loc(1) = 'core'
+      overshoot_bdy_loc(1) = 'top'
+      overshoot_f(1) = 0.014d0
+      overshoot_f0(1) = 0.004d0
+
+/
+
+
+&pgstar
+      ! Disabled for speed - enable if you want to watch evolution
+/

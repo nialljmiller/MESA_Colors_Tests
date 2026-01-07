@@ -4,36 +4,106 @@
 starspots
 ******************
 
-This test suite case evolves a 0.9 |Msun|, solar metallicity (Z=0.02) model
-to an age of 24.63 Gyr using MESA's implementation of the
-YREC (Yale Rotating Evolution Code) SPOTS formalism introduced by
-`Somers et al. (2020; ApJ) <https://ui.adsabs.harvard.edu/abs/2015ApJ...807..174S>`__
-Compare to Figure 15 in Section 7 of MESA Instrument Paper VI.
+This test case demonstrates how MESA's starspot implementation affects 
+synthetic photometry, highlighting the chromatic signature of surface 
+magnetic activity.
 
+Scientific Context
+==================
 
-The impedance of the surface flux due to magnetic pressure from starspots is parameterized
-in the style of an atmospheric boundary modification. As first described by
-`Somers et al. (2015; ApJ) <https://ui.adsabs.harvard.edu/abs/2015ApJ...807..174S>`__,
-the degree of "spottiness" on the stellar surface is characterized using two parameters:
+Starspots on magnetically active cool stars modulate stellar brightness 
+in a wavelength-dependent manner. Because spots are cooler than the 
+surrounding photosphere, they emit less flux at all wavelengths, but 
+the suppression is stronger in blue bands than in red. This chromatic 
+signature is critical for:
 
-* SPOTF (hereafter ``fspot``): a coverage fraction, or "spot filling factor" (in the notation of the YREC documentation); and
+- Characterizing stellar activity in exoplanet host stars
+- Understanding photometric variability in M dwarfs  
+- Interpreting LSST and PLATO time-series photometry
 
-* SPOTX (hereafter ``xspot``): the temperature contrast between the spotted and unspotted regions: xspot = T_spot/T_photosphere.
+MESA implements the YREC SPOTS formalism 
+(`Somers et al. 2015 <https://ui.adsabs.harvard.edu/abs/2015ApJ...807..174S>`__)
+as an atmospheric boundary condition modification. Two parameters control 
+the spot properties:
 
-The coverage fraction is set to ``fspot = 0.34``
-(for consistency with observations of low-mass stars:
-`Cao et al., 2022 <https://ui.adsabs.harvard.edu/abs/2022ApJ...924...84C>`__)
-and the temperature contrast is set to ``xspot = 0.85`` (also from fits to observations).
+- **fspot**: Coverage fraction (spot filling factor)
+- **xspot**: Temperature contrast, T_spot/T_photosphere
 
-Detailed discussion of this functionality can be found in
-`MESA Instrument Paper VI: Starspots <https://ui.adsabs.harvard.edu/abs/2023ApJS..265...15J>`__.
+Setup
+=====
 
-A plot of the HR diagram for the problem is included below:
+This demonstration evolves a 0.7 |Msun| solar-metallicity star to main 
+sequence equilibrium (5 Gyr), then compares synthetic photometry with 
+and without spot coverage.
 
-.. image:: ../../../star/test_suite/starspots/docs/hr_starspots_001497.svg
-   :width: 100%
+Spot parameters follow observational constraints from 
+`Cao et al. 2022 <https://ui.adsabs.harvard.edu/abs/2022ApJ...924...84C>`__:
 
+- ``fspot = 0.34`` (34% spot coverage)
+- ``xspot = 0.85`` (spots 15% cooler than photosphere)
 
-Last-Updated: 09Aug2024 by Meridith Joyce
+Filters: LSST ugrizy (AB magnitude system)
 
-Last-Run: 22Oct2024 (MESA 9b2017ca) by pmocz on C916PXT6XW in 656 seconds using 8 threads.
+Running the Test
+================
+
+The workflow consists of three stages:
+
+1. **Evolve to main sequence**::
+
+      ./rn
+
+   This runs ``inlist_evolve``, creating ``ms_model.mod``.
+
+2. **Run spotted case**::
+
+   Edit ``inlist`` to point to ``inlist_spotted``, then::
+
+      ./rn
+
+3. **Run unspotted case**::
+
+   Edit ``inlist`` to point to ``inlist_unspotted``, then::
+
+      ./rn
+
+4. **Analyze results**::
+
+      python python_analysis/compare_photometry.py
+
+Alternatively, use the automated script::
+
+   ./run_all.sh
+
+Expected Results
+================
+
+The spotted model shows:
+
+- **Fainter overall**: Reduced flux due to cool spot coverage
+- **Chromatic signature**: Larger magnitude difference in blue (u, g) 
+  than red (i, z) bands
+- **Color shift**: Spotted star appears redder (higher g-r, r-i values)
+
+The magnitude difference Δm = m_spotted - m_unspotted should increase 
+toward bluer wavelengths, demonstrating how spots affect blue bands 
+more strongly than red.
+
+Output Files
+============
+
+- ``LOGS_evolve/``: History during MS evolution
+- ``LOGS_spotted/``: History with spots enabled
+- ``LOGS_unspotted/``: History without spots
+- ``COLORS_spotted/``: Synthetic photometry with spots
+- ``COLORS_unspotted/``: Synthetic photometry without spots
+- ``plots/``: Analysis figures
+
+References
+==========
+
+- Somers, G., et al. 2015, ApJ, 807, 174 (SPOTS formalism)
+- Cao, L., et al. 2022, ApJ, 924, 84 (Spot parameters from observations)
+- MESA VI, Jermyn et al. 2023, ApJS, 265, 15 (MESA implementation)
+
+Last-Updated: Jan 2025

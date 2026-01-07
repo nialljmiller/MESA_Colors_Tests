@@ -1,0 +1,200 @@
+! =============================================================================
+! STAGE 2: White Dwarf Cooling Sequence with Synthetic Photometry
+! =============================================================================
+! This inlist loads a pre-made WD model and evolves it through the cooling
+! sequence while computing synthetic photometry via the colors module.
+!
+! Prerequisites:
+!   - wd_start.mod from Stage 1 (or downloaded pre-computed model)
+!   - Koester DA atmosphere grid in stellar_atm path
+!   - LSST filter curves in instrument path
+!
+! Output: 
+!   - history.data with LSST magnitudes at every timestep
+!   - SED files (if make_csv = .true.)
+! =============================================================================
+
+&star_job
+      show_log_description_at_start = .true.
+
+      ! Load the WD model from Stage 1
+      load_saved_model = .true.
+      load_model_filename = 'wd_start.mod'
+
+      ! Save final cooled model
+      save_model_when_terminate = .true.
+      save_model_filename = 'wd_cooled.mod'
+
+      ! History columns - WD cooling diagnostics
+      history_columns_file = 'history_columns.list'
+
+      ! Enable real-time plotting
+      pgstar_flag = .true.
+
+/
+
+
+&eos
+      ! Skye EOS - essential for degenerate WD matter
+/
+
+
+&kap
+      Zbase = 0.02d0
+      kap_file_prefix = 'gs98'
+      kap_lowT_prefix = 'lowT_fa05_gs98'
+/
+
+
+&colors
+      ! ========================================
+      ! ENABLE COLORS MODULE
+      ! ========================================
+      use_colors = .true.
+
+      ! ========================================
+      ! ATMOSPHERE MODELS
+      ! ========================================
+      ! Koester DA models cover the WD parameter space:
+      !   Teff: 5,000 - 80,000 K
+      !   log g: 6.5 - 9.5
+      ! Process via SED_Tools from SVO archive
+      stellar_atm = '/colors/data/stellar_models/Koester_DA/'
+
+      ! ========================================
+      ! PHOTOMETRIC FILTERS
+      ! ========================================
+      ! Rubin/LSST ugrizy for survey comparison
+      ! Also relevant for Roman precursor studies
+      instrument = '/colors/data/filters/LSST/LSST'
+
+      ! ========================================
+      ! DISTANCE AND MAGNITUDE SYSTEM
+      ! ========================================
+      ! 10 pc for absolute magnitudes
+      distance = 3.0857d19
+
+      ! AB system - standard for LSST
+      mag_system = 'AB'
+
+      ! ========================================
+      ! OUTPUT OPTIONS
+      ! ========================================
+      ! Enable SED output for spectral analysis
+      make_csv = .true.
+      colors_results_directory = 'SED'
+
+/
+
+
+&controls
+      ! ========================================
+      ! WD COOLING PARAMETERS
+      ! ========================================
+      ! No mass loss on cooling track
+      RGB_wind_scheme = ''
+      AGB_wind_scheme = ''
+
+      ! ========================================
+      ! STOPPING CONDITIONS
+      ! ========================================
+      ! Stop when WD has cooled significantly
+      ! Teff ~ 5000 K corresponds to ~10 Gyr cooling age
+      Teff_lower_limit = 4500d0
+
+      ! Or stop at specific luminosity
+      ! log_L_lower_limit = -4.5d0  ! Very faint WD
+
+      ! Cooling time limit (alternative)
+      ! max_age is total age; use max_years_for_timestep for cooling time
+      max_age = 15d9  ! 15 Gyr total age
+
+      ! ========================================
+      ! OUTPUT CONTROL - HIGH CADENCE
+      ! ========================================
+      ! Fine sampling for smooth cooling curves
+      history_interval = 1
+      profile_interval = 50
+      terminal_interval = 20
+
+      ! Photo output for restart capability
+      photo_interval = 100
+      photo_digits = 6
+
+      ! ========================================
+      ! NUMERICAL CONTROLS
+      ! ========================================
+      varcontrol_target = 1d-4  ! Tighter for smooth cooling
+
+      ! WD cooling is relatively smooth - can use larger timesteps
+      max_years_for_timestep = 1d7  ! 10 Myr max step
+
+      ! Mesh - WDs are compact, moderate resolution sufficient
+      mesh_delta_coeff = 1.0d0
+
+      ! ========================================
+      ! NEUTRINO COOLING
+      ! ========================================
+      ! Important for hot WD cooling
+      ! MESA handles this by default
+
+/
+
+
+&pgstar
+      ! ========================================
+      ! REAL-TIME VISUALIZATION
+      ! ========================================
+      pgstar_interval = 5
+
+      ! -----------------------------------------
+      ! Panel 1: HR Diagram showing cooling track
+      ! -----------------------------------------
+      HR_win_flag = .true.
+      HR_win_width = 6
+      HR_win_aspect_ratio = 1.0
+
+      HR_logT_min = 3.5
+      HR_logT_max = 5.5
+      HR_logL_min = -5.0
+      HR_logL_max = 1.0
+
+      ! -----------------------------------------
+      ! Panel 2: Light curve in g-band
+      ! -----------------------------------------
+      History_Track1_win_flag = .true.
+      History_Track1_win_width = 8
+      History_Track1_win_aspect_ratio = 0.75
+
+      History_Track1_xname = 'star_age'
+      History_Track1_yname = 'g'
+      History_Track1_xaxis_label = 'Age (yr)'
+      History_Track1_yaxis_label = 'M_g (AB mag)'
+      History_Track1_reverse_yaxis = .true.
+
+      History_Track1_xmin = -101d0
+      History_Track1_xmax = -101d0
+      History_Track1_ymin = -101d0
+      History_Track1_ymax = -101d0
+
+      ! -----------------------------------------
+      ! Panel 3: r-band magnitude vs temperature
+      ! (Use log_Teff as proxy for color evolution)
+      ! -----------------------------------------
+      History_Track2_win_flag = .true.
+      History_Track2_win_width = 6
+      History_Track2_win_aspect_ratio = 1.0
+
+      History_Track2_xname = 'log_Teff'
+      History_Track2_yname = 'r'
+      History_Track2_xaxis_label = 'log Teff'
+      History_Track2_yaxis_label = 'M_r (AB mag)'
+      History_Track2_reverse_yaxis = .true.
+      History_Track2_reverse_xaxis = .true.
+
+      History_Track2_xmin = 3.5d0
+      History_Track2_xmax = 5.0d0
+      History_Track2_ymin = 6.0d0
+      History_Track2_ymax = 18.0d0
+
+/

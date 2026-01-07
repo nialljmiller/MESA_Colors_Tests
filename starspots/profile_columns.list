@@ -1,0 +1,12 @@
+! profile_columns.list for starspots demonstration
+! Minimal set - profiles not primary output for this demo
+
+zone
+mass
+logR
+logT
+logRho
+logP
+x_mass_fraction_H
+y_mass_fraction_He
+z_mass_fraction_metals

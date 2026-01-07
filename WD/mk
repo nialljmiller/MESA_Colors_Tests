@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+# Compile - standard MESA test_suite pattern
+
+# Link to standard test_suite make directory
+if [ ! -r make/makefile ]; then
+    if [ -d make ]; then
+        rm -rf make
+    fi
+    mkdir make
+    cd make
+    ln -s ${MESA_DIR}/star/test_suite/make/makefile .
+    cd ..
+fi
+
+# Build
+cd make
+make -j
+cd ..

@@ -1,3 +1,39 @@
+name: starspots
+version: 1.0
+description: Demonstrates chromatic signature of starspots on synthetic photometry
+
+stages:
+  - name: evolve
+    inlist: inlist_evolve
+    check:
+      - file: ms_model.mod
+  - name: spotted
+    inlist: inlist_spotted
+    depends_on: evolve
+  - name: unspotted  
+    inlist: inlist_unspotted
+    depends_on: evolve
     - inlist: inlist_starspots_header
+      runtime_minutes:  28.66
+      model_number:         1496
+      star_age:     2.4630000000000000E+10
+      num_retries:            0
+      log_rel_run_E_err:        -9.2738921514069670
+      steps:         1796
+      retries:            1
+      redos:            0
+      solver_calls_made:         1797
+      solver_calls_failed:            1
+      solver_iterations:        11494
     - inlist: inlist_starspots_header
-    - inlist: inlist_starspots_header
+      runtime_minutes:  55.81
+      model_number:         1496
+      star_age:     2.4630000000000000E+10
+      num_retries:            0
+      log_rel_run_E_err:        -9.2738921514069670
+      steps:         1796
+      retries:            1
+      redos:            0
+      solver_calls_made:         1797
+      solver_calls_failed:            1
+      solver_iterations:        11494
