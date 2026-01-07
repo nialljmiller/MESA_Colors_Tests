@@ -1,0 +1,181 @@
+
+! inlist_TP_AGB
+! Stage 2: Thermal Pulse AGB evolution with MESA Colors
+!
+! Demonstrates the Colors module's ability to capture rapid photometric
+! evolution during helium shell flashes (thermal pulses).
+!
+! During each thermal pulse:
+! - He-shell flash causes rapid luminosity increase
+! - Convective envelope response changes Teff
+! - Dredge-up events alter surface composition
+! - All produce measurable color changes on ~100 year timescales
+
+
+&star_job
+
+   show_log_description_at_start = .false.
+
+   ! Load model from Stage 1
+   load_saved_model = .true.
+   load_model_filename = 'pre_TP.mod'
+
+   ! Save final model
+   save_model_when_terminate = .true.
+   save_model_filename = 'final.mod'
+
+   ! Reset age/model number for cleaner analysis
+   set_initial_age = .true.
+   initial_age = 0d0
+
+   set_initial_model_number = .true.
+   initial_model_number = 0
+
+   ! History columns
+   history_columns_file = 'history_columns.list'
+
+   pgstar_flag = .false.
+
+/ ! end of star_job namelist
+
+
+&eos
+/ ! end of eos namelist
+
+
+&kap
+
+   Zbase = 0.02d0
+   kap_file_prefix = 'gs98'
+
+   use_Type2_opacities = .true.
+   kap_lowT_prefix = 'lowT_fa05_gs98'
+
+/ ! end of kap namelist
+
+
+&colors
+
+   ! =========================================================================
+   ! MESA Colors Configuration for TP-AGB
+   ! =========================================================================
+   
+   use_colors = .true.
+   
+   ! Johnson-Cousins BVRI - ideal for cool AGB stars
+   ! These bands span the peak emission of ~3000 K photospheres
+   instrument = '/data/colors_data/filters/Generic/Johnson'
+   
+   ! Kurucz atmosphere grid
+   ! Coverage: Teff 3500-50000 K, log g -1 to 5, [M/H] -5 to +1
+   ! AGB stars: Teff ~ 2500-4000 K, log g ~ -0.5 to 1
+   ! Note: coolest AGB phases may extrapolate slightly
+   stellar_atm = '/data/colors_data/stellar_models/Kurucz2003all/'
+   
+   ! 10 pc distance for absolute magnitudes
+   distance = 3.0857d19
+   
+   ! Vega magnitude system (traditional for ground-based photometry)
+   mag_system = 'Vega'
+   vega_sed = '/data/colors_data/stellar_models/vega_flam.csv'
+   
+   ! Output SED files for detailed analysis
+   make_csv = .false.
+   colors_results_directory = 'SED'
+
+/ ! end of colors namelist
+
+
+&controls
+
+   ! =========================================================================
+   ! STOPPING CONDITIONS
+   ! =========================================================================
+   
+   ! Run through several thermal pulses
+   ! Typical interpulse period for 2 Msun is ~50,000-100,000 years
+   ! Run for ~500,000 years to capture 5-10 pulses
+   max_age = 5d5   ! 500,000 years from start of TP-AGB
+   
+   ! Safety limits
+   max_model_number = 100000
+   
+   ! Stop if envelope mass gets too low (end of AGB)
+   he_core_mass_limit = 0.8d0   ! Typical final core mass ~0.6 Msun
+   
+   ! Stop if star leaves AGB (becomes too hot)
+   Teff_upper_limit = 8000d0    ! Post-AGB transition
+
+   ! =========================================================================
+   ! MASS LOSS
+   ! =========================================================================
+   
+   ! AGB mass loss continues
+   AGB_wind_scheme = 'Blocker'
+   Blocker_scaling_factor = 0.05d0
+
+   ! =========================================================================
+   ! CONVECTION - Critical for thermal pulse behavior
+   ! =========================================================================
+   
+   mixing_length_alpha = 1.9d0
+   
+   ! Time-Dependent Convection for rapid thermal pulse phases
+   ! The He-shell flash develops faster than convective turnover time
+   MLT_option = 'TDC'
+   
+   use_Ledoux_criterion = .true.
+   alpha_semiconvection = 0.1d0
+   thermohaline_coeff = 1d0
+
+   ! Convective premixing for He-shell flash
+   do_conv_premix = .true.
+
+   ! =========================================================================
+   ! TIMESTEP CONTROLS - Fine sampling during rapid phases
+   ! =========================================================================
+   
+   varcontrol_target = 5d-4      ! Tighter than default for rapid phases
+   
+   ! Limit luminosity changes per step (important during flash)
+   delta_lgL_limit = 0.05d0
+   delta_lgL_hard_limit = 0.1d0
+   
+   ! Limit Teff changes per step
+   delta_lgTeff_limit = 0.01d0
+   delta_lgTeff_hard_limit = 0.02d0
+   
+   ! Nuclear burning limits
+   delta_lgL_He_limit = 0.05d0
+   lgL_He_burn_min = 2.0d0
+   
+   delta_lgL_H_limit = 0.05d0
+   lgL_H_burn_min = 1.0d0
+
+   ! =========================================================================
+   ! MESH
+   ! =========================================================================
+   
+   mesh_delta_coeff = 0.8d0     ! Finer mesh for shell resolution
+   max_allowed_nz = 15000
+
+   ! =========================================================================
+   ! OUTPUT - High cadence to capture rapid evolution
+   ! =========================================================================
+   
+   ! Every timestep for Colors (critical for capturing flash)
+   history_interval = 1
+   
+   ! Profiles less frequently
+   profile_interval = 50
+   
+   terminal_interval = 20
+   photo_interval = 100
+   write_header_frequency = 20
+
+/ ! end of controls namelist
+
+
+&pgstar
+
+/ ! end of pgstar namelist

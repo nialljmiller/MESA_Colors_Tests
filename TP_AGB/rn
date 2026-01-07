@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+# this provides the definition of do_one (run one part of test)
+# do_one [inlist] [output model] [LOGS directory]
+source "${MESA_DIR}/star/test_suite/test_suite_helpers"
+
+date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S"
+
+echo ''
+echo '==================================================='
+echo 'Stage 1: Evolving 2 Msun from pre-MS to TP-AGB'
+echo '==================================================='
+echo ''
+
+do_one inlist_to_TP_AGB_header pre_TP.mod LOGS_to_TP
+
+echo ''
+echo '==================================================='
+echo 'Stage 2: Thermal Pulse evolution with MESA Colors'
+echo '==================================================='
+echo ''
+
+do_one inlist_TP_AGB_header final.mod LOGS
+
+date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S"
+
+echo ''
+echo 'Finished all stages'
+echo ''

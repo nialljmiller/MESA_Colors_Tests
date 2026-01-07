@@ -205,10 +205,10 @@ def plot_colorloop(data, output_file='rsp_colorloop.pdf'):
     
     # Select one complete cycle (after settling)
     if 'rsp_num_periods' in data.dtype.names:
-        mask = (data['rsp_num_periods'] >= 4) & (data['rsp_num_periods'] < 5)
+        mask = (data['rsp_num_periods'] >= 4)# & (data['rsp_num_periods'] < 5)
     else:
         time = get_column(data, 'star_age_day', data['star_age'])
-        mask = (time > 3.0) & (time < 3.71)
+        mask = (time > 3.0)# & (time < 3.71)
     
     if mask.sum() < 50:
         # Fall back to using phase
@@ -220,8 +220,7 @@ def plot_colorloop(data, output_file='rsp_colorloop.pdf'):
             if len(unique_phases) == 0 or abs(p - unique_phases[-1]) > 0.001:
                 unique_phases.append(p)
                 unique_idx.append(i)
-            if len(unique_idx) > 1000:
-                break
+
         mask = np.zeros(len(data), dtype=bool)
         mask[unique_idx[:1000]] = True
     

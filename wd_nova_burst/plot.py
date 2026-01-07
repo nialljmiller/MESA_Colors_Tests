@@ -1,249 +1,475 @@
-import matplotlib.pyplot as plt
+#!/usr/bin/env python3
+"""
+plot.py - Analysis script for MESA Colors nova burst demonstration
+
+Generates figures demonstrating the Colors module's ability to capture
+rapid photometric evolution during classical nova outburst.
+
+Produces:
+1. Multi-band light curves showing magnitude evolution
+2. Color-magnitude diagram showing temperature evolution
+3. Timestep analysis showing MESA's adaptive sampling
+
+Author: Niall Miller (2025)
+"""
+
 import numpy as np
-import os
-import mesa_reader as mr
+import matplotlib.pyplot as plt
+from pathlib import Path
 
-# if the directory plt_out/ does not exits, make it
-if not os.path.exists("plt_out"):
-    os.makedirs("plt_out")
-
-# "MESA" styles for plotting
-# note that this requires having a LaTeX installation locally.
-# If you don't have that, you can comment out the "text.usetex" line.
-plt.rcParams["figure.figsize"] = (3.38, 2.535)
-plt.rcParams["lines.markersize"] = 4
-plt.rcParams["lines.linewidth"] = 1.5
-plt.rcParams["text.usetex"] = True
-plt.rcParams["font.size"] = 10
-plt.rcParams["font.family"] = "serif"
-plt.rcParams["font.serif"] = "Computer Modern Roman"
-plt.rcParams["axes.titlesize"] = "medium"
-plt.rcParams["axes.labelsize"] = "medium"
-plt.rcParams["legend.fontsize"] = 8
-plt.rcParams["legend.frameon"] = False
-plt.rcParams["figure.dpi"] = 300
-
-plt.rcParams["xtick.direction"] = "in"
-plt.rcParams["ytick.direction"] = "in"
-plt.rcParams["xtick.top"] = True
-plt.rcParams["ytick.right"] = True
-plt.rcParams["xtick.minor.visible"] = True
-plt.rcParams["ytick.minor.visible"] = True
-
-plt.rcParams["savefig.bbox"] = "tight"
-plt.rcParams["savefig.pad_inches"] = 0.1
-plt.rcParams["savefig.dpi"] = 300
-plt.rcParams["savefig.format"] = "svg"
-
-plt.rcParams["axes.formatter.use_mathtext"] = True
-
-# read in the history data from MESA
-logs = mr.MesaLogDir("LOGS")
-h = logs.history
-p = logs.profile_data()
-
-# Create a figure
-fig = plt.figure(figsize=(10, 6))
-
-# Create a GridSpec with 6 rows and 3 columns
-gs_outer = fig.add_gridspec(1, 2, width_ratios=[1, 2])
-gs_left = gs_outer[0].subgridspec(2, 1, hspace=0.3)
-gs_right = gs_outer[1].subgridspec(3, 2, hspace=0, wspace=0.75)
-
-# First column: Two plots of roughly equal height
-ax1 = fig.add_subplot(gs_left[0])
-ax2 = fig.add_subplot(gs_left[1])
-
-# Second column: Three stacked axes sharing the same x-axis
-ax3 = fig.add_subplot(gs_right[0, 0])
-ax4 = fig.add_subplot(gs_right[1, 0])
-ax5 = fig.add_subplot(gs_right[2, 0])
-
-# Third column: Three stacked axes sharing a different x-axis
-ax6 = fig.add_subplot(gs_right[0, 1])
-ax7 = fig.add_subplot(gs_right[1, 1])
-ax8 = fig.add_subplot(gs_right[2, 1])
-
-# HR diagram
-ax1.loglog(h.Teff, h.L)
-ax1.set_xlabel(r"Effective Temperature [K]")
-ax1.set_ylabel(r"Luminosity [$L_{\odot}$]")
-ax1.invert_xaxis()
-# add marker to last point
-ax1.plot(h.Teff[-1], h.L[-1], "o", color="C3")
-
-# T-Rho Profile
-# load data from MESA_DIR and save to arrays in T-Rho space
-plot_info_dir = os.path.join(os.environ["MESA_DIR"], "data/star_data/plot_info")
-
-# degeneracy data
-psi4_file = os.path.join(plot_info_dir, "psi4.data")
-psi4_data = np.genfromtxt(psi4_file)
-psi4_xs = 10 ** np.array(psi4_data.T[0])
-psi4_ys = 10 ** np.array(psi4_data.T[1])
-
-# hydrogen burn line
-hydrogen_burn_file = os.path.join(plot_info_dir, "hydrogen_burn.data")
-hydrogen_burn_data = np.genfromtxt(hydrogen_burn_file)
-hydrogen_burn_xs = 10 ** np.array(hydrogen_burn_data.T[0])
-hydrogen_burn_ys = 10 ** np.array(hydrogen_burn_data.T[1])
-
-# helium burn line
-helium_burn_file = os.path.join(plot_info_dir, "helium_burn.data")
-helium_burn_data = np.genfromtxt(helium_burn_file)
-helium_burn_xs = 10 ** np.array(helium_burn_data.T[0])
-helium_burn_ys = 10 ** np.array(helium_burn_data.T[1])
-
-# plot raw T-Rho data; sets limits for us
-ax2.loglog(p.Rho, p.T)
-
-# plot psi4 and hydrogen burn lines
-# preserve limits... shouldn't have to do it like this, but
-# autoscale commands always seem to fail
-x_left, x_right = ax2.get_xlim()
-y_bottom, y_top = ax2.get_ylim()
-ax2.plot(psi4_xs, psi4_ys, color="lightgrey", ls=":", zorder=-5)
-ax2.plot(hydrogen_burn_xs, hydrogen_burn_ys, ls="--", color="lightgrey", zorder=-5)
-ax2.plot(helium_burn_xs, helium_burn_ys, ls="--", color="lightgrey", zorder=-5)
-ax2.set_xlim(x_left, x_right)
-ax2.set_ylim(y_bottom, y_top)
-ax2.set_xlabel(r"Density [g/cm$^3$]")
-ax2.set_ylabel(r"Temperature [K]")
-
-# plot strong burning zones
-high_burning = np.where(p.eps_nuc > 1e7, True, False)
-mid_burning = np.where((p.eps_nuc > 1e3) & (p.eps_nuc < 1e7), True, False)
-low_burning = np.where((p.eps_nuc > 1) & (p.eps_nuc < 1e3), True, False)
-# temporarily set cap style to round
-save_capstyle = plt.rcParams["lines.solid_capstyle"]
-plt.rcParams["lines.solid_capstyle"] = "round"
-ax2.plot(
-    p.Rho[high_burning],
-    p.T[high_burning],
-    marker="o",
-    ls="",
-    ms=6,
-    color="C3",
-    zorder=-1,
-)
-ax2.plot(
-    [],
-    [],
-    lw=6,
-    color="C3",
-    label=r"$\epsilon_{\mathrm{nuc}} > 10^7\,\mathrm{erg/g/s}$",
-)
-ax2.plot(
-    p.Rho[mid_burning],
-    p.T[mid_burning],
-    marker="o",
-    ls="",
-    ms=4.5,
-    color="C1",
-    zorder=-2,
-)
-ax2.plot(
-    [],
-    [],
-    color="C1",
-    lw=4.5,
-    label=r"$\epsilon_{\mathrm{nuc}} > 10^3\,\mathrm{erg/g/s}$",
-)
-ax2.plot(
-    p.Rho[low_burning],
-    p.T[low_burning],
-    marker="o",
-    ls="",
-    ms=3,
-    color="goldenrod",
-    zorder=-3,
-)
-ax2.plot(
-    [],
-    [],
-    color="goldenrod",
-    lw=3,
-    label=r"$\epsilon_{\mathrm{nuc}} > 1\,\mathrm{erg/g/s}$",
-)
-ax2.legend(loc="lower right")
-# restore capstyle
-plt.rcParams["lines.solid_capstyle"] = save_capstyle
-
-# time series for last 5 years
-window = 5
-
-# top panel: photospheric and H-burning luminosities
-mask = h.star_age > (max(h.star_age) - window)
-ax3.set_title("Last 5 Years")
-ax3.semilogy(h.star_age[mask], h.L[mask], label=r"$L$")
-ax3.semilogy(h.star_age[mask], h.LH[mask], ls="--", label=r"$L_{\mathrm{H}}$")
-ax3.set_ylabel(r"Luminosity [$L_{\odot}$]")
-ax3.legend(loc="upper left")
-ax3.set_xticklabels([])
-
-# temperature and radius
-ax4.semilogy(h.star_age[mask], h.Teff[mask], label=r"$T_{\mathrm{eff}}$")
-ax4.semilogy([], [], label=r"$R$", ls="--", color="C1")
-ax4.legend(loc="upper left")
-ax4b = ax4.twinx()
-ax4b.semilogy(h.star_age[mask], h.R[mask], ls="--", color="C1")
-ax4.set_ylabel(r"Eff. Temp. [K]", color="C0")
-ax4b.set_ylabel(r"Radius [$R_{\odot}$]", color="C1")
-ax4.set_xticklabels([])
-
-# mass loss and envelope mass
-ax5.semilogy(
-    h.star_age[mask],
-    h.star_mass[mask] - h.he_core_mass[mask],
-    label=r"$\Delta M_{\mathrm{H}}$",
-)
-ax5.semilogy([], [], ls="--", label=r"$|\dot{M}|$")
-ax5.legend(loc="center left")
-ax5.set_ylabel(r"Envelope Mass [$M_{\odot}$]", color="C0")
-ax5b = ax5.twinx()
-ax5b.semilogy(h.star_age[mask], h.abs_mdot[mask], ls="--", color="C1")
-ax5b.set_ylabel(r"$\left\vert\dot{M}\right\vert$ [$M_{\odot}$/yr]", color="C1")
-
-ax5.set_xlabel(r"Star Age [yr]")
-
-# profile at the end of the simulation
-# first up, common isotope mass fractions
-xm = p.star_mass - p.mass
-for iso in ["h1", "he4", "c12", "n14", "o16"]:
-    element = "".join([i for i in iso if not i.isdigit()]).capitalize()
-    mass_number = "".join([i for i in iso if i.isdigit()])
-    tex_iso = r"${}^{" + mass_number + r"}$" + element
-    ax6.loglog(xm, p.data(iso), label=tex_iso)
-
-ax6.set_title("Final Profile")
-ax6.set_ylim(4e-5, 1.5)
-ax6.legend(loc="lower left")
-ax6.set_ylabel(r"Mass Fraction")
-ax6.set_xticklabels([])
-
-# nuclear energy generation rates
-ax7.loglog(xm, p.eps_nuc, label=r"$\epsilon_{\mathrm{nuc}}$")
-ax7.loglog(xm, p.pp, ls="--", label=r"$\epsilon_{\mathrm{pp}}$")
-ax7.loglog(xm, p.cno, ls=":", label=r"$\epsilon_{\mathrm{CNO}}$")
-ax7.legend(loc="upper right")
-ax7.set_ylabel(r"Specific Power [erg/g/s]")
-ax7.set_xticklabels([])
-ax7.set_ylim(1e-6, 1e10)
-
-# basic thermodynamic quantities
-ax8.loglog(xm, p.Rho, label="$\\rho$")
-ax8.loglog([], [], ls="--", label="$T$")
-ax8.set_ylim(2e-3, 2e6)
-ax8.set_ylabel(r"Density [g/cm$^3$]", color="C0")
-ax8b = ax8.twinx()
-ax8b.loglog(xm, p.T, ls="--", color="C1")
-ax8b.set_ylim(2e6, 1.25e8)
-ax8b.set_ylabel(r"Temperature [K]", color="C1")
-ax8.legend(loc="upper right")
-
-for ax in [ax6, ax7, ax8]:
-    ax.set_xlim(8e-4, 1e-10)
-ax8.set_xlabel(r"Exterior Mass Coordinate [M$_{\odot}$]")
+# Try to use mesa_reader if available, otherwise fall back to manual parsing
+try:
+    import mesa_reader as mr
+    USE_MESA_READER = True
+except ImportError:
+    USE_MESA_READER = False
+    print("mesa_reader not found, using manual history parsing")
 
 
-fig.savefig("plt_out/wd_nova_burst_grid.svg")
+def read_history_manual(filepath):
+    """Read MESA history file without mesa_reader."""
+    with open(filepath, 'r') as f:
+        lines = f.readlines()
+    
+    # Find header line (starts with column names)
+    header_idx = None
+    for i, line in enumerate(lines):
+        if line.strip().startswith('model_number'):
+            header_idx = i
+            break
+    
+    if header_idx is None:
+        # Try alternative: look for line after blank line following header info
+        for i, line in enumerate(lines):
+            parts = line.strip().split()
+            if len(parts) > 0 and parts[0].isdigit():
+                header_idx = i - 1
+                break
+    
+    if header_idx is None:
+        raise ValueError("Could not find header in history file")
+    
+    # Parse column names
+    names = lines[header_idx].strip().split()
+    
+    # Parse data
+    data = {}
+    for name in names:
+        data[name] = []
+    
+    for line in lines[header_idx + 1:]:
+        parts = line.strip().split()
+        if len(parts) == len(names):
+            for i, name in enumerate(names):
+                try:
+                    data[name].append(float(parts[i]))
+                except ValueError:
+                    data[name].append(np.nan)
+    
+    # Convert to numpy arrays
+    for name in names:
+        data[name] = np.array(data[name])
+    
+    return data
+
+
+def load_history(logs_dir='LOGS'):
+    """Load MESA history data."""
+    history_file = Path(logs_dir) / 'history.data'
+    
+    if USE_MESA_READER:
+        h = mr.MesaData(str(history_file))
+        return h
+    else:
+        return read_history_manual(history_file)
+
+
+def get_column(history, name):
+    """Get column from history object (works with mesa_reader or dict)."""
+    if USE_MESA_READER:
+        return history.data(name)
+    else:
+        return history.get(name, np.array([]))
+
+
+def has_column(history, name):
+    """Check if column exists."""
+    if USE_MESA_READER:
+        return name in history.bulk_names
+    else:
+        return name in history
+
+
+def plot_multiband_lightcurves(history, outdir='plots'):
+    """
+    Plot multi-band light curves during nova outburst.
+    
+    Demonstrates: MESA Colors captures rapid magnitude evolution
+    at native timestep resolution.
+    """
+    fig, axes = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+    
+    # Get time axis
+    age = get_column(history, 'star_age')  # years
+    # Convert to days from start of nova phase
+    time_days = (age - age[0]) * 365.25
+    
+    # Top panel: LSST bands (or whatever filters are available)
+    ax1 = axes[0]
+    
+    # Check which filters are available
+    lsst_bands = ['u', 'g', 'r', 'i', 'z', 'y']
+    johnson_bands = ['U', 'B', 'V', 'R', 'I']
+    
+    colors_lsst = ['purple', 'green', 'orange', 'red', 'brown', 'black']
+    colors_johnson = ['purple', 'blue', 'green', 'red', 'darkred']
+    
+    bands_found = []
+    
+    # Try LSST bands first
+    for band, color in zip(lsst_bands, colors_lsst):
+        if has_column(history, band):
+            mag = get_column(history, band)
+            valid = np.isfinite(mag)
+            if np.sum(valid) > 10:
+                ax1.plot(time_days[valid], mag[valid], '-', color=color, 
+                        label=band, linewidth=1.5)
+                bands_found.append(band)
+    
+    # Try Johnson bands if no LSST
+    if not bands_found:
+        for band, color in zip(johnson_bands, colors_johnson):
+            if has_column(history, band):
+                mag = get_column(history, band)
+                valid = np.isfinite(mag)
+                if np.sum(valid) > 10:
+                    ax1.plot(time_days[valid], mag[valid], '-', color=color,
+                            label=band, linewidth=1.5)
+                    bands_found.append(band)
+    
+    ax1.set_ylabel('Absolute Magnitude', fontsize=12)
+    ax1.invert_yaxis()  # Brighter = up
+    ax1.legend(loc='upper right', ncol=2)
+    ax1.set_title('Nova Outburst: Multi-band Light Curves', fontsize=14)
+    ax1.grid(True, alpha=0.3)
+    
+    # Bottom panel: Bolometric
+    ax2 = axes[1]
+    
+    if has_column(history, 'Mag_bol'):
+        mag_bol = get_column(history, 'Mag_bol')
+        valid = np.isfinite(mag_bol)
+        ax2.plot(time_days[valid], mag_bol[valid], 'k-', linewidth=2, 
+                label='Bolometric')
+    
+    # Also show log_L for comparison
+    if has_column(history, 'log_L'):
+        log_L = get_column(history, 'log_L')
+        # Convert to approximate Mbol: Mbol_sun = 4.74, L_sun = 1
+        # Mbol = 4.74 - 2.5 * log_L
+        mbol_approx = 4.74 - 2.5 * log_L
+        ax2.plot(time_days, mbol_approx, '--', color='gray', linewidth=1,
+                label=r'From $\log L$', alpha=0.7)
+    
+    ax2.set_xlabel('Time (days)', fontsize=12)
+    ax2.set_ylabel('Bolometric Magnitude', fontsize=12)
+    ax2.invert_yaxis()
+    ax2.legend(loc='upper right')
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    
+    Path(outdir).mkdir(exist_ok=True)
+    plt.savefig(f'{outdir}/nova_lightcurves.png', dpi=150, bbox_inches='tight')
+    plt.savefig(f'{outdir}/nova_lightcurves.pdf', bbox_inches='tight')
+    print(f"Saved: {outdir}/nova_lightcurves.png")
+    plt.close()
+
+
+def plot_color_magnitude(history, outdir='plots'):
+    """
+    Plot color-magnitude diagram showing temperature evolution.
+    
+    Demonstrates: Color evolution during rapid transient phase.
+    """
+    fig, ax = plt.subplots(figsize=(8, 8))
+    
+    # Try different color combinations based on available bands
+    color_pairs = [
+        ('g', 'r', 'g-r'),      # LSST
+        ('r', 'i', 'r-i'),      # LSST
+        ('B', 'V', 'B-V'),      # Johnson
+        ('V', 'R', 'V-R'),      # Johnson
+    ]
+    
+    mag_band = None
+    color_name = None
+    color_data = None
+    
+    for blue, red, cname in color_pairs:
+        if has_column(history, blue) and has_column(history, red):
+            blue_mag = get_column(history, blue)
+            red_mag = get_column(history, red)
+            
+            valid = np.isfinite(blue_mag) & np.isfinite(red_mag)
+            if np.sum(valid) > 10:
+                color_data = blue_mag - red_mag
+                mag_band = red
+                color_name = cname
+                break
+    
+    if color_data is None:
+        print("Warning: No suitable filter pairs found for CMD")
+        plt.close()
+        return
+    
+    mag_data = get_column(history, mag_band)
+    time = get_column(history, 'star_age')
+    time_days = (time - time[0]) * 365.25
+    
+    valid = np.isfinite(color_data) & np.isfinite(mag_data)
+    
+    # Color by time
+    scatter = ax.scatter(color_data[valid], mag_data[valid], 
+                        c=time_days[valid], cmap='viridis', 
+                        s=20, alpha=0.7, edgecolors='none')
+    
+    # Add colorbar
+    cbar = plt.colorbar(scatter, ax=ax)
+    cbar.set_label('Time (days)', fontsize=12)
+    
+    # Mark start and end
+    ax.plot(color_data[valid][0], mag_data[valid][0], 'go', markersize=15,
+           label='Start', zorder=10)
+    ax.plot(color_data[valid][-1], mag_data[valid][-1], 'rs', markersize=15,
+           label='End', zorder=10)
+    
+    ax.set_xlabel(f'{color_name}', fontsize=14)
+    ax.set_ylabel(f'{mag_band}', fontsize=14)
+    ax.invert_yaxis()
+    ax.legend(loc='upper left')
+    ax.set_title('Nova Color-Magnitude Evolution', fontsize=14)
+    ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    
+    Path(outdir).mkdir(exist_ok=True)
+    plt.savefig(f'{outdir}/nova_cmd.png', dpi=150, bbox_inches='tight')
+    plt.savefig(f'{outdir}/nova_cmd.pdf', bbox_inches='tight')
+    print(f"Saved: {outdir}/nova_cmd.png")
+    plt.close()
+
+
+def plot_timestep_analysis(history, outdir='plots'):
+    """
+    Analyze timestep resolution during rapid evolution.
+    
+    Demonstrates: MESA Colors samples at native timestep resolution,
+    capturing rapid phases that would be missed by coarse post-processing.
+    """
+    fig, axes = plt.subplots(3, 1, figsize=(10, 10), sharex=True)
+    
+    age = get_column(history, 'star_age')
+    time_days = (age - age[0]) * 365.25
+    
+    # Panel 1: Timestep evolution
+    ax1 = axes[0]
+    if has_column(history, 'time_step_sec'):
+        dt_sec = get_column(history, 'time_step_sec')
+        ax1.semilogy(time_days, dt_sec / 3600, 'b-', linewidth=1)
+        ax1.set_ylabel('Timestep (hours)', fontsize=12)
+    elif has_column(history, 'log_dt'):
+        log_dt = get_column(history, 'log_dt')
+        dt_years = 10**log_dt
+        dt_hours = dt_years * 365.25 * 24
+        ax1.semilogy(time_days, dt_hours, 'b-', linewidth=1)
+        ax1.set_ylabel('Timestep (hours)', fontsize=12)
+    ax1.set_title('MESA Adaptive Timestep During Nova', fontsize=14)
+    ax1.grid(True, alpha=0.3)
+    
+    # Mark typical survey cadence
+    ax1.axhline(y=24, color='r', linestyle='--', alpha=0.5, label='1 day cadence')
+    ax1.axhline(y=1, color='orange', linestyle='--', alpha=0.5, label='1 hour cadence')
+    ax1.legend(loc='upper right')
+    
+    # Panel 2: Luminosity evolution
+    ax2 = axes[1]
+    if has_column(history, 'log_L'):
+        log_L = get_column(history, 'log_L')
+        ax2.plot(time_days, log_L, 'k-', linewidth=1.5)
+        ax2.set_ylabel(r'$\log(L/L_\odot)$', fontsize=12)
+    ax2.grid(True, alpha=0.3)
+    
+    # Panel 3: Temperature evolution
+    ax3 = axes[2]
+    if has_column(history, 'log_Teff'):
+        log_Teff = get_column(history, 'log_Teff')
+        ax3.plot(time_days, log_Teff, 'r-', linewidth=1.5)
+        ax3.set_ylabel(r'$\log T_{\rm eff}$ (K)', fontsize=12)
+    ax3.set_xlabel('Time (days)', fontsize=12)
+    ax3.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    
+    Path(outdir).mkdir(exist_ok=True)
+    plt.savefig(f'{outdir}/nova_timestep_analysis.png', dpi=150, bbox_inches='tight')
+    plt.savefig(f'{outdir}/nova_timestep_analysis.pdf', bbox_inches='tight')
+    print(f"Saved: {outdir}/nova_timestep_analysis.png")
+    plt.close()
+
+
+def plot_summary_grid(history, outdir='plots'):
+    """
+    Create a summary grid figure suitable for publication.
+    """
+    fig = plt.figure(figsize=(12, 10))
+    
+    gs = fig.add_gridspec(2, 2, hspace=0.25, wspace=0.25)
+    
+    age = get_column(history, 'star_age')
+    time_days = (age - age[0]) * 365.25
+    
+    # Panel A: Multi-band light curves
+    ax1 = fig.add_subplot(gs[0, 0])
+    
+    bands = ['u', 'g', 'r', 'i', 'z', 'y', 'U', 'B', 'V', 'R', 'I']
+    colors = {'u': 'purple', 'g': 'green', 'r': 'orange', 'i': 'red', 
+              'z': 'brown', 'y': 'black',
+              'U': 'purple', 'B': 'blue', 'V': 'green', 'R': 'red', 'I': 'darkred'}
+    
+    for band in bands:
+        if has_column(history, band):
+            mag = get_column(history, band)
+            valid = np.isfinite(mag)
+            if np.sum(valid) > 10:
+                ax1.plot(time_days[valid], mag[valid], '-', color=colors.get(band, 'gray'),
+                        label=band, linewidth=1.5)
+    
+    ax1.set_xlabel('Time (days)')
+    ax1.set_ylabel('Absolute Magnitude')
+    ax1.invert_yaxis()
+    ax1.legend(loc='upper right', ncol=2, fontsize=8)
+    ax1.set_title('(a) Multi-band Light Curves')
+    ax1.grid(True, alpha=0.3)
+    
+    # Panel B: HR diagram track
+    ax2 = fig.add_subplot(gs[0, 1])
+    
+    if has_column(history, 'log_Teff') and has_column(history, 'log_L'):
+        log_Teff = get_column(history, 'log_Teff')
+        log_L = get_column(history, 'log_L')
+        
+        scatter = ax2.scatter(log_Teff, log_L, c=time_days, cmap='viridis',
+                            s=10, alpha=0.7)
+        cbar = plt.colorbar(scatter, ax=ax2)
+        cbar.set_label('Time (days)', fontsize=10)
+        
+        ax2.plot(log_Teff[0], log_L[0], 'go', markersize=10, zorder=10)
+        ax2.plot(log_Teff[-1], log_L[-1], 'rs', markersize=10, zorder=10)
+    
+    ax2.set_xlabel(r'$\log T_{\rm eff}$ (K)')
+    ax2.set_ylabel(r'$\log(L/L_\odot)$')
+    ax2.invert_xaxis()
+    ax2.set_title('(b) HR Diagram Track')
+    ax2.grid(True, alpha=0.3)
+    
+    # Panel C: Color evolution
+    ax3 = fig.add_subplot(gs[1, 0])
+    
+    color_pairs = [('g', 'r'), ('B', 'V')]
+    for blue, red in color_pairs:
+        if has_column(history, blue) and has_column(history, red):
+            blue_mag = get_column(history, blue)
+            red_mag = get_column(history, red)
+            color = blue_mag - red_mag
+            valid = np.isfinite(color)
+            if np.sum(valid) > 10:
+                ax3.plot(time_days[valid], color[valid], '-', linewidth=1.5,
+                        label=f'{blue}-{red}')
+    
+    ax3.set_xlabel('Time (days)')
+    ax3.set_ylabel('Color (mag)')
+    ax3.legend(loc='best')
+    ax3.set_title('(c) Color Evolution')
+    ax3.grid(True, alpha=0.3)
+    
+    # Panel D: Timestep resolution
+    ax4 = fig.add_subplot(gs[1, 1])
+    
+    if has_column(history, 'time_step_sec'):
+        dt_sec = get_column(history, 'time_step_sec')
+        dt_hours = dt_sec / 3600
+        ax4.semilogy(time_days, dt_hours, 'b-', linewidth=1)
+    elif has_column(history, 'log_dt'):
+        log_dt = get_column(history, 'log_dt')
+        dt_hours = (10**log_dt) * 365.25 * 24
+        ax4.semilogy(time_days, dt_hours, 'b-', linewidth=1)
+    
+    ax4.axhline(y=24, color='r', linestyle='--', alpha=0.5, label='Daily cadence')
+    ax4.axhline(y=1, color='orange', linestyle='--', alpha=0.5, label='Hourly cadence')
+    ax4.set_xlabel('Time (days)')
+    ax4.set_ylabel('Timestep (hours)')
+    ax4.legend(loc='upper right', fontsize=8)
+    ax4.set_title('(d) Adaptive Timestep')
+    ax4.grid(True, alpha=0.3)
+    
+    plt.suptitle('MESA Colors: Classical Nova Outburst', fontsize=14, y=1.02)
+    
+    Path(outdir).mkdir(exist_ok=True)
+    plt.savefig(f'{outdir}/nova_summary.png', dpi=150, bbox_inches='tight')
+    plt.savefig(f'{outdir}/nova_summary.pdf', bbox_inches='tight')
+    print(f"Saved: {outdir}/nova_summary.png")
+    plt.close()
+
+
+def main():
+    """Main analysis routine."""
+    print("Loading MESA history data...")
+    
+    # Look for LOGS directory
+    logs_dirs = ['LOGS', 'LOGS_nova', '../LOGS']
+    history = None
+    
+    for logs_dir in logs_dirs:
+        if Path(logs_dir).exists():
+            try:
+                history = load_history(logs_dir)
+                print(f"Loaded history from {logs_dir}")
+                break
+            except Exception as e:
+                print(f"Could not load from {logs_dir}: {e}")
+    
+    if history is None:
+        print("ERROR: Could not find LOGS directory with history.data")
+        print("Make sure you have run the MESA model first.")
+        return
+    
+    # List available columns
+    if USE_MESA_READER:
+        cols = history.bulk_names
+    else:
+        cols = list(history.keys())
+    
+    print(f"\nAvailable columns ({len(cols)} total):")
+    colors_cols = [c for c in cols if c in ['Mag_bol', 'Flux_bol', 'Interp_rad',
+                                            'u', 'g', 'r', 'i', 'z', 'y',
+                                            'U', 'B', 'V', 'R', 'I', 'J', 'H', 'K']]
+    if colors_cols:
+        print(f"  Colors columns: {', '.join(colors_cols)}")
+    else:
+        print("  WARNING: No Colors columns found - check that colors module ran")
+    
+    # Generate plots
+    print("\nGenerating plots...")
+    outdir = 'plots'
+    
+    plot_multiband_lightcurves(history, outdir)
+    plot_color_magnitude(history, outdir)
+    plot_timestep_analysis(history, outdir)
+    plot_summary_grid(history, outdir)
+    
+    print("\nAnalysis complete!")
+
+
+if __name__ == '__main__':
+    main()

@@ -1,3 +1,5 @@
-           2 models.    lines hold model number, priority, and profile number.
+           4 models.    lines hold model number, priority, and profile number.
            1           2           1
         5000           2           2
+       10000           2           3
+       12022           3           4

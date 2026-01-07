@@ -1,5 +1,9 @@
 
 ! inlist_wd_nova_burst
+! Part 2: Accretion and nova outburst with MESA Colors
+!
+! This demonstrates the Colors module's ability to capture
+! rapid photometric evolution during explosive transient phases.
 
 
 &star_job
@@ -12,10 +16,6 @@
    save_model_when_terminate = .true.
    save_model_filename = 'final.mod'
    required_termination_code_string = 'extras_check_model'
-
-!      save_model_when_terminate = .true.
-!      save_model_filename = 'start_of_wd_nova_burst.mod'
-!      required_termination_code_string = 'max_model_number'
 
    set_initial_age = .true.
    initial_age = 0
@@ -49,10 +49,40 @@
 / ! end of kap namelist
 
 
+&colors
+
+   ! =========================================================================
+   ! MESA Colors Configuration for Nova Outburst
+   ! =========================================================================
+   ! Enable runtime synthetic photometry to capture rapid color evolution
+   ! during the thermonuclear runaway and subsequent decline phases.
+   
+   use_colors = .true.
+   
+   ! Filter system: LSST ugrizy for transient survey comparison
+   ! Alternative: '/data/colors_data/filters/Generic/Johnson' for classical bands
+   instrument = '/data/colors_data/filters/LSST/LSST'
+   
+   ! Stellar atmosphere grid
+   ! Kurucz models cover the relevant Teff range for nova photospheres
+   stellar_atm = '/data/colors_data/stellar_models/Kurucz2003all/'
+   
+   ! Distance: 10 pc for absolute magnitudes
+   distance = 3.0857d19  ! 10 pc in cm
+   
+   ! Magnitude system: AB for LSST consistency
+   mag_system = 'AB'
+   
+   ! Optional: output SED files for detailed analysis
+   make_csv = .false.
+   colors_results_directory = 'SED'
+
+/ ! end of colors namelist
+
+
 &controls
 
    ! limit max_model_number as part of test_suite
-   !max_model_number = 223
    max_model_number = 2250
 
 ! solver
@@ -80,7 +110,7 @@
    ! e.g., if this is 2, then only get wind when L > 2*Ledd
 
    mixing_length_alpha = 1.9
-   MLT_option = 'TDC'
+   MLT_option = 'TDC'  ! Time Dependent Convection for rapid phases
 
    use_Ledoux_criterion = .true.
    alpha_semiconvection = 1d-3
@@ -138,7 +168,8 @@
 
    photo_interval = 50
    profile_interval = 50
-   history_interval = 5
+   ! High-cadence history output to capture rapid photometric evolution
+   history_interval = 1
    terminal_interval = 10
    write_header_frequency = 10
 
@@ -160,7 +191,5 @@
 
    Text_Summary1_name(5,2) = 'time_step_sec'
    Text_Summary1_name(6,2) = 'max_tau_conv'
-   !Text_Summary1_name(7,2) = 'cz_bot_radius'
-   !Text_Summary1_name(8,2) = 'cz_top_radius'
 
 / ! end of pgstar namelist

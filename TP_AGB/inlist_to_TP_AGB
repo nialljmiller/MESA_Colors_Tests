@@ -1,0 +1,123 @@
+
+! inlist_to_TP_AGB
+! Stage 1: Evolve 2 Msun from pre-MS to the onset of thermal pulses
+!
+! This stage prepares the model for the Colors demonstration.
+! Colors is disabled here since the focus is on the TP-AGB phase.
+
+
+&star_job
+
+   ! Create a new pre-main-sequence model
+   create_pre_main_sequence_model = .true.
+
+   ! Save model when we reach TP-AGB
+   save_model_when_terminate = .true.
+   save_model_filename = 'pre_TP.mod'
+
+   ! History columns file
+   history_columns_file = 'history_columns.list'
+
+   ! Display
+   show_log_description_at_start = .true.
+
+   ! PMS relaxation (quick, not scientifically critical for this test)
+   pre_ms_relax_to_start_radiative_core = .false.
+   initial_model_relax_num_steps = 10
+   pre_ms_relax_num_steps = 10
+
+   pgstar_flag = .false.
+
+/ ! end of star_job namelist
+
+
+&eos
+/ ! end of eos namelist
+
+
+&kap
+
+   Zbase = 0.02d0
+   kap_file_prefix = 'gs98'
+
+   ! Low-T opacities important for cool AGB envelopes
+   use_Type2_opacities = .true.
+   kap_lowT_prefix = 'lowT_fa05_gs98'
+
+/ ! end of kap namelist
+
+
+&colors
+
+   ! Colors disabled during long evolution to TP-AGB
+   ! (saves computation time - focus is on thermal pulse phase)
+   use_colors = .false.
+
+/ ! end of colors namelist
+
+
+&controls
+
+   ! =========================================================================
+   ! STELLAR PARAMETERS
+   ! =========================================================================
+   
+   initial_mass = 2.0d0          ! 2 Msun - classic TP-AGB mass
+   initial_z = 0.02d0            ! Solar metallicity
+   initial_y = 0.28d0            ! Standard helium
+
+
+   ! =========================================================================
+   ! STOPPING CONDITIONS
+   ! =========================================================================
+   
+   ! Stop when core He is exhausted and we're on the early AGB
+   ! This occurs when central He drops below threshold
+   xa_central_lower_limit_species(1) = 'he4'
+   xa_central_lower_limit(1) = 1d-4
+   
+   ! Alternative: stop based on He core mass reaching AGB values
+   ! he_core_mass_limit = 0.55d0
+
+   ! Safety limits
+   max_age = 2d9               ! 2 Gyr safety limit
+   max_model_number = 80000    ! Safety limit
+
+   ! =========================================================================
+   ! CONVECTION
+   ! =========================================================================
+   
+   mixing_length_alpha = 1.9d0
+   MLT_option = 'Henyey'
+   
+   use_Ledoux_criterion = .true.
+   alpha_semiconvection = 0.1d0
+   thermohaline_coeff = 1d0
+
+   ! =========================================================================
+   ! MESH AND TIMESTEP
+   ! =========================================================================
+   
+   mesh_delta_coeff = 1.0d0
+   varcontrol_target = 1d-3
+   
+   max_allowed_nz = 10000
+
+   ! =========================================================================
+   ! OUTPUT CONTROL
+   ! =========================================================================
+   
+   ! Coarse output for this long evolution phase
+   history_interval = 10
+   profile_interval = 100
+   terminal_interval = 50
+   photo_interval = 100
+
+   write_header_frequency = 20
+
+/ ! end of controls namelist
+
+
+&pgstar
+
+/ ! end of pgstar namelist

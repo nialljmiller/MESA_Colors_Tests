@@ -1,5 +1,6 @@
 
 ! inlist_setup
+! Part 1: Prepares the WD model for nova accretion
 
 
 &star_job
@@ -48,6 +49,15 @@
    use_Type2_opacities = .true.
 
 / ! end of kap namelist
+
+
+&colors
+
+   ! Colors module disabled during setup phase
+   ! (WD is too hot/compact for standard atmosphere grids)
+   use_colors = .false.
+
+/ ! end of colors namelist
 
 
 &controls

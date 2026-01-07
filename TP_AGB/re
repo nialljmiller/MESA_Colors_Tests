@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+# Restart from photos
+
+source "${MESA_DIR}/star/test_suite/test_suite_helpers"
+
+# Check which stage to restart
+if [ -f pre_TP.mod ]; then
+    echo "Stage 1 complete - restarting Stage 2"
+    do_one inlist_TP_AGB_header final.mod LOGS
+else
+    echo "Stage 1 incomplete - restart not supported"
+    echo "Run ./rn to start from beginning"
+fi
