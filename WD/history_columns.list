@@ -25,7 +25,6 @@
    log_Lnuc
    log_Lneu
    power_nuc_burn
-   power_neutrinos
    
    ! Thermal state
    total_energy
@@ -40,28 +39,10 @@
    
    ! These are the values passed to the colors module:
    Teff
-   surface_h1
-   surface_he4
    
-! ============================================
-! CORE COMPOSITION
-! ============================================
-   center_h1
-   center_he4
-   center_c12
-   center_o16
-   
-   ! Mass fractions
-   he_core_mass
-   c_core_mass
-   o_core_mass
-
 ! ============================================
 ! ENVELOPE STRUCTURE
 ! ============================================
-   ! H/He envelope masses (critical for WD cooling)
-   h1_boundary_mass
-   he4_boundary_mass
    
    ! Convection zones
    mass_conv_core
@@ -78,8 +59,6 @@
 ! ============================================
    model_number
    num_zones
-   dt
-   dt_sec
    time_step
 
 ! ============================================

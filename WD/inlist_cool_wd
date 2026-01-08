@@ -88,12 +88,6 @@
 
 
 &controls
-      ! ========================================
-      ! WD COOLING PARAMETERS
-      ! ========================================
-      ! No mass loss on cooling track
-      RGB_wind_scheme = ''
-      AGB_wind_scheme = ''
 
       ! ========================================
       ! STOPPING CONDITIONS

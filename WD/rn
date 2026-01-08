@@ -8,19 +8,19 @@ date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S"
 
 echo ''
 echo '==================================================='
-echo 'Stage 1: Evolving 2 Msun from pre-MS to TP-AGB'
+echo 'Stage 1: Evolving 1 Msun from pre-MS to WD'
 echo '==================================================='
 echo ''
 
-do_one inlist_to_TP_AGB_header pre_TP.mod LOGS_to_TP
+do_one inlist_to_wd wd_start.mod LOGS_progenitor
 
 echo ''
 echo '==================================================='
-echo 'Stage 2: Thermal Pulse evolution with MESA Colors'
+echo 'Stage 2: WD Cooling Sequence with MESA Colors'
 echo '==================================================='
 echo ''
 
-do_one inlist_TP_AGB_header final.mod LOGS
+do_one inlist_cool_wd wd_cooled.mod LOGS
 
 date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S"
 

@@ -1,6 +1,6 @@
 ! ***********************************************************************
 !
-!   Copyright (C) 2018-2019  The MESA Team
+!   Copyright (C) 2011  The MESA Team
 !
 !   This program is free software: you can redistribute it and/or modify
 !   it under the terms of the GNU Lesser General Public License
@@ -17,7 +17,7 @@
 !
 ! ***********************************************************************
 
-module run_star_extras
+      module run_star_extras
 
       use star_lib
       use star_def
@@ -28,11 +28,12 @@ module run_star_extras
       implicit none
 
       include "test_suite_extras_def.inc"
-      logical :: need_to_write_LINA_data
 
+      ! these routines are called by the standard run_star check_model
       contains
 
       include "test_suite_extras.inc"
+
 
       subroutine extras_controls(id, ierr)
          integer, intent(in) :: id
@@ -43,7 +44,6 @@ module run_star_extras
          if (ierr /= 0) return
          s% extras_startup => extras_startup
          s% extras_check_model => extras_check_model
-         s% extras_start_step => extras_start_step
          s% extras_finish_step => extras_finish_step
          s% extras_after_evolve => extras_after_evolve
          s% how_many_extra_history_columns => how_many_extra_history_columns
@@ -62,67 +62,7 @@ module run_star_extras
          call star_ptr(id, s, ierr)
          if (ierr /= 0) return
          call test_suite_startup(s, restart, ierr)
-         if (.not. restart) then
-            need_to_write_LINA_data = len_trim(s% x_character_ctrl(10)) > 0
-         else  ! it is a restart
-            need_to_write_LINA_data = .false.
-         end if
       end subroutine extras_startup
-
-
-      integer function extras_start_step(id)
-         integer, intent(in) :: id
-         integer :: ierr, io, i
-         type (star_info), pointer :: s
-         ierr = 0
-         call star_ptr(id, s, ierr)
-         if (ierr /= 0) return
-         extras_start_step = keep_going
-         if (need_to_write_LINA_data) then
-            io = 61
-            open(io,file=trim(s% x_character_ctrl(10)),status='unknown')
-            write(io, '(99d16.5)') s% RSP_mass, s% RSP_L, s% RSP_Teff, &
-               (s% rsp_LINA_periods(i), s% rsp_LINA_growth_rates(i), i=1, s% RSP_nmodes)
-            close(io)
-            write(*,*) 'write ' // trim(s% x_character_ctrl(10))
-            need_to_write_LINA_data = .false.
-         end if
-      end function extras_start_step
-
-
-      ! returns either keep_going or terminate.
-      integer function extras_finish_step(id)
-         integer, intent(in) :: id
-         integer :: ierr
-         real(dp) :: target_period, rel_run_E_err
-         type (star_info), pointer :: s
-         ierr = 0
-         call star_ptr(id, s, ierr)
-         if (ierr /= 0) return
-         extras_finish_step = keep_going
-         if (s% x_integer_ctrl(1) <= 0) return
-         if (s% rsp_num_periods < s% x_integer_ctrl(1)) return
-         write(*,'(A)')
-         write(*,'(A)')
-         write(*,'(A)')
-         target_period = s% x_ctrl(1)
-         rel_run_E_err = s% cumulative_energy_error/s% total_energy
-         write(*,*) 'rel_run_E_err', rel_run_E_err
-         if (s% total_energy /= 0d0 .and. abs(rel_run_E_err) > 1d-5) then
-            write(*,*) '*** BAD rel_run_E_error ***', &
-            s% cumulative_energy_error/s% total_energy
-         else if (abs(s% rsp_period/(24*3600) - target_period) > 1d-2) then
-            write(*,*) '*** BAD ***', s% rsp_period/(24*3600) - target_period, &
-               s% rsp_period/(24*3600), target_period
-         else
-            write(*,*) 'good match for period', &
-               s% rsp_period/(24*3600), target_period
-         end if
-         write(*,'(A)')
-         write(*,'(A)')
-         write(*,'(A)')
-         extras_finish_step = terminate
-      end function extras_finish_step
 
 
       subroutine extras_after_evolve(id, ierr)
@@ -198,4 +138,18 @@ module run_star_extras
          if (ierr /= 0) return
       end subroutine data_for_extra_profile_columns
 
+
+      ! returns either keep_going or terminate.
+      integer function extras_finish_step(id)
+         integer, intent(in) :: id
+         integer :: ierr
+         type (star_info), pointer :: s
+         ierr = 0
+         call star_ptr(id, s, ierr)
+         if (ierr /= 0) return
+         extras_finish_step = keep_going
+      end function extras_finish_step
+
+
       end module run_star_extras
+
