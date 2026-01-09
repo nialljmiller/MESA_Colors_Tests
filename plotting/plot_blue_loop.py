@@ -27,13 +27,14 @@ import argparse
 from plot_utils import (
     setup_apj_style, read_mesa_history, find_magnitude_columns,
     get_sed_for_model, find_poi_blue_loop, get_model_number_at_index,
-    add_em_spectrum_regions, LSST_FILTERS,
+    get_sed_counter_at_index, add_em_spectrum_regions, LSST_FILTERS,
     APJ_SINGLE_COL, APJ_DOUBLE_COL
 )
+from matplotlib.ticker import NullLocator, NullFormatter, ScalarFormatter,FixedLocator
 
 
 def plot_cmd_with_seds(history, sed_dir, output_dir, 
-                       filename='fig_blueloop_cmd.pdf'):
+                        filename='fig_blueloop_cmd.pdf'):
     """
     Plot CMD track with SED insets at key evolutionary points.
     
@@ -51,8 +52,10 @@ def plot_cmd_with_seds(history, sed_dir, output_dir,
     fig = plt.figure(figsize=(APJ_DOUBLE_COL, 5))
     
     # Main CMD panel on left, SED panels on right
-    gs = GridSpec(3, 2, width_ratios=[1.2, 1], wspace=0.3, hspace=0.35,
-                  left=0.08, right=0.95, top=0.92, bottom=0.10)
+    # MODIFIED: hspace set to 0.0 so SEDs touch. 
+    # Adjusted 'right' to 0.88 to make room for right-sided Y labels.
+    gs = GridSpec(3, 2, width_ratios=[1.2, 1], wspace=0.1, hspace=0.0,
+                  left=0.08, right=0.88, top=0.95, bottom=0.10)
     
     ax_cmd = fig.add_subplot(gs[:, 0])
     
@@ -96,11 +99,11 @@ def plot_cmd_with_seds(history, sed_dir, output_dir,
                ha='center', color='blue', alpha=0.7)
     
     # Colorbar
-    cbar = fig.colorbar(scatter, ax=ax_cmd, pad=0.02, aspect=30)
-    cbar.set_label('Age (Myr)', fontsize=9)
-    cbar.ax.tick_params(labelsize=8)
+    cbar = fig.colorbar(scatter, ax=ax_cmd, pad=0.0, aspect=30)
+    cbar.set_label('Age (Myr)', fontsize=7)
+    cbar.ax.tick_params(labelsize=5)
     
-    ax_cmd.legend(loc='lower left', fontsize=7, framealpha=0.9)
+    ax_cmd.legend(loc='upper right', fontsize=7, framealpha=0.9)
     
     # SED panels on right
     sed_axes = [fig.add_subplot(gs[i, 1]) for i in range(3)]
@@ -109,30 +112,42 @@ def plot_cmd_with_seds(history, sed_dir, output_dir,
     sed_pois = ['rgb_tip', 'loop_maximum', 'end']
     sed_titles = ['RGB Tip', 'Blue Maximum', 'Early AGB']
     
-    for ax_sed, poi_name, title in zip(sed_axes, sed_pois, sed_titles):
+    for i, (ax_sed, poi_name, title) in enumerate(zip(sed_axes, sed_pois, sed_titles)):
         idx = poi[poi_name]
         model_num = get_model_number_at_index(history, idx)
+        sed_counter = get_sed_counter_at_index(history, idx)
         
-        # Try to load SED
-        sed_files = list(sed_dir.glob(f'*_SED_{model_num}.csv'))
+        # Try to load SED (files use counter, not MESA model number)
+        sed_files = list(sed_dir.glob(f'*_SED_{sed_counter}.csv'))
+        
+        print(f"  {poi_name}: idx={idx}, sed_counter={sed_counter}, found {len(sed_files)} files")
+        
+        # MODIFIED: Move Y-axis ticks to the right side
+        ax_sed.yaxis.tick_right()
         
         if sed_files:
             # Read first filter's SED (they all have the same underlying SED)
-            sed_data = {}
+            sed_data = {'wavelengths': [], 'fluxes': [], 'convolved_flux': []}
             with open(sed_files[0], 'r') as f:
                 import csv
                 reader = csv.DictReader(f)
-                for key in ['wavelengths', 'fluxes', 'convolved_flux']:
-                    sed_data[key] = []
                 
                 for row in reader:
-                    for key in sed_data:
-                        try:
-                            val = float(row[key])
-                            if val != 0:
-                                sed_data[key].append(val)
-                        except (ValueError, KeyError):
-                            pass
+                    try:
+                        wl = float(row['wavelengths'])
+                        fl = float(row['fluxes'])
+                        # Only keep rows where both wavelength and flux are valid and non-zero
+                        if wl > 0 and fl > 0:
+                            sed_data['wavelengths'].append(wl)
+                            sed_data['fluxes'].append(fl)
+                            # Convolved flux is optional
+                            try:
+                                cf = float(row.get('convolved_flux', 0))
+                                sed_data['convolved_flux'].append(cf)
+                            except (ValueError, TypeError):
+                                sed_data['convolved_flux'].append(0)
+                    except (ValueError, KeyError):
+                        continue
                 
                 for key in sed_data:
                     sed_data[key] = np.array(sed_data[key])
@@ -165,137 +180,235 @@ def plot_cmd_with_seds(history, sed_dir, output_dir,
         # Stellar parameters annotation
         teff = 10**history['log_Teff'][idx]
         logg = history['log_g'][idx]
-        ax_sed.text(0.97, 0.95, f'$T_{{\\rm eff}}$ = {teff:.0f} K\n$\\log g$ = {logg:.2f}',
+        ax_sed.text(0.97, 0.35, f'$T_{{\\rm eff}}$ = {teff:.0f} K\n$\\log g$ = {logg:.2f}',
                    transform=ax_sed.transAxes, fontsize=7,
                    ha='right', va='top',
                    bbox=dict(boxstyle='round,pad=0.3', facecolor='white', 
-                            alpha=0.8, edgecolor='gray', linewidth=0.5))
+                             alpha=0.6, edgecolor='none', linewidth=0.5))
         
-        ax_sed.set_title(title, fontsize=9)
+        # MODIFIED: Retrieve color from poi_style and apply to text
+        title_color = poi_style[poi_name]['color']
+        
+        ax_sed.text(0.97, 0.92, title, transform=ax_sed.transAxes,
+                    fontsize=9, fontweight='bold', ha='right', va='top',
+                    color=title_color,  # Apply the POI color here
+                    bbox=dict(facecolor='white', alpha=0.6, pad=0, edgecolor='none'))
+
+        ax_sed.text(0.98, 0.93, title, transform=ax_sed.transAxes,
+                    fontsize=9, fontweight='bold', ha='right', va='top',
+                    color='k',  # Apply the POI color here
+                    bbox=dict(facecolor='white', alpha=0.6, pad=0, edgecolor='none'))
+        
+        
         ax_sed.tick_params(labelsize=7)
-        
-        if ax_sed == sed_axes[-1]:
-            ax_sed.set_xlabel(r'Wavelength ($\mathrm{\AA}$)', fontsize=8)
+                
+        # Shared X-axis logic
+        ax_sed.xaxis.get_offset_text().set_visible(False)
+
+        if ax_sed != sed_axes[-1]:
+            ax_sed.tick_params(axis='x', which='both', bottom=False, labelbottom=False)
         else:
-            ax_sed.set_xticklabels([])
+            ax_sed.set_xlabel(r'Wavelength ($\mathrm{\AA}$)', fontsize=8)
+
     
-    # Common y-label for SED panels
-    fig.text(0.52, 0.5, r'$F_\lambda$ (erg s$^{-1}$ cm$^{-2}$ $\mathrm{\AA}^{-1}$)',
-             rotation=90, va='center', fontsize=8)
+    # MODIFIED: Common y-label moved to the far Right
+    # x coordinate increased to ~0.98 to sit on the right side
+    fig.text(0.93, 0.5, r'$F_\lambda$ (erg s$^{-1}$ cm$^{-2}$ $\mathrm{\AA}^{-1}$)',
+             rotation=270, va='center', ha='center', fontsize=8)
     
     plt.savefig(output_dir / filename, dpi=300)
     plt.close()
     print(f"Saved: {output_dir / filename}")
 
 
-def plot_hr_diagram(history, output_dir, filename='fig_blueloop_hr.pdf'):
-    """
-    Plot HR diagram with color-coded evolutionary track.
-    
-    Parameters
-    ----------
-    history : dict
-        MESA history data
-    output_dir : Path
-        Output directory
-    filename : str
-        Output filename
-    """
-    fig, ax = plt.subplots(figsize=(APJ_SINGLE_COL, 3.5))
-    
-    log_teff = history['log_Teff']
-    log_l = history['log_L']
-    g_r = history['g'] - history['r']
-    
-    # Plot track colored by g-r
-    scatter = ax.scatter(log_teff, log_l, c=g_r, cmap='coolwarm', 
-                        s=2, alpha=0.8, rasterized=True)
-    ax.plot(log_teff, log_l, 'k-', lw=0.2, alpha=0.3, zorder=0)
-    
-    # POI markers
-    poi = find_poi_blue_loop(history)
-    markers = {'rgb_tip': 'o', 'loop_maximum': 's', 'end': 'D'}
-    
-    for name, idx in poi.items():
-        if name in markers:
-            ax.scatter(log_teff[idx], log_l[idx], c='black', s=50,
-                      marker=markers[name], edgecolors='white', 
-                      linewidths=0.5, zorder=5)
-    
-    ax.invert_xaxis()
-    ax.set_xlabel(r'$\log(T_{\rm eff}/{\rm K})$')
-    ax.set_ylabel(r'$\log(L/L_\odot)$')
-    
-    # Instability strip edges
-    ax.axvline(np.log10(5500), color='red', ls='--', alpha=0.4, lw=0.8)
-    ax.axvline(np.log10(6500), color='blue', ls='--', alpha=0.4, lw=0.8)
-    
-    cbar = fig.colorbar(scatter, ax=ax, pad=0.02)
-    cbar.set_label(r'$g - r$ (mag)', fontsize=8)
-    cbar.ax.tick_params(labelsize=7)
-    
-    plt.tight_layout()
-    plt.savefig(output_dir / filename, dpi=300)
-    plt.close()
-    print(f"Saved: {output_dir / filename}")
 
 
-def plot_evolution_panels(history, output_dir, 
+
+
+def plot_evolution_panels(history, sed_dir, output_dir, 
                           filename='fig_blueloop_evolution.pdf'):
-    """
-    Plot multi-panel magnitude and color evolution.
-    
-    Parameters
-    ----------
-    history : dict
-        MESA history data
-    output_dir : Path
-        Output directory
-    filename : str
-        Output filename
-    """
-    fig, axes = plt.subplots(3, 1, figsize=(APJ_SINGLE_COL, 5), sharex=True)
-    
+
+    sed_dir = Path(sed_dir)
+    fig = plt.figure(figsize=(APJ_DOUBLE_COL, 6))
+
+    # Tighter GridSpec
+    gs = GridSpec(
+        2, 3,
+        height_ratios=[1.5, 1],
+        hspace=0.0,
+        wspace=0.0,
+        left=0.10,
+        right=0.97,
+        top=0.95,
+        bottom=0.08
+    )
+
+
+    global_fl_max = 0.0
+
     age = history['star_age'] / 1e6
-    
-    # Panel 1: Multi-band magnitudes
-    ax1 = axes[0]
+
+    # -------------------------
+    # Top panel: light curves
+    # -------------------------
+    ax_lc = fig.add_subplot(gs[0, :])
+
     bands = ['u', 'g', 'r', 'i', 'z', 'y']
     for band in bands:
         if band in history:
             props = LSST_FILTERS[band]
-            ax1.plot(age, history[band], color=props['color'], 
-                    lw=0.8, label=band, alpha=0.9)
-    
-    ax1.invert_yaxis()
-    ax1.set_ylabel('Magnitude (AB)')
-    ax1.legend(loc='upper right', ncol=3, fontsize=7, framealpha=0.9)
-    
-    # Panel 2: g-r color
-    ax2 = axes[1]
-    g_r = history['g'] - history['r']
-    ax2.plot(age, g_r, 'k-', lw=0.8)
-    ax2.axhspan(0.25, 0.65, alpha=0.1, color='blue', zorder=0)
-    ax2.set_ylabel(r'$g - r$ (mag)')
-    
-    # Panel 3: Teff
-    ax3 = axes[2]
-    teff = 10**history['log_Teff']
-    ax3.plot(age, teff, 'k-', lw=0.8)
-    ax3.axhspan(5500, 6500, alpha=0.1, color='blue', zorder=0)
-    ax3.set_ylabel(r'$T_{\rm eff}$ (K)')
-    ax3.set_xlabel('Age (Myr)')
-    
-    # Mark POIs
+            ax_lc.plot(
+                age, history[band],
+                color=props['color'],
+                lw=0.8,
+                label=band,
+                alpha=0.9
+            )
+
+    ax_lc.invert_yaxis()
+    ax_lc.set_ylabel('Magnitude (AB)')
+
+    # X-axis on top
+    ax_lc.xaxis.set_ticks_position('top')
+    ax_lc.xaxis.set_label_position('top')
+    ax_lc.set_xlabel('Age (Myr)')
+    ax_lc.tick_params(labelbottom=False, labeltop=True)
+
+    ax_lc.legend(
+        loc='upper right',
+        ncol=3,
+        fontsize=7,
+        framealpha=0.9
+    )
+
     poi = find_poi_blue_loop(history)
-    for name, idx in poi.items():
-        for ax in axes:
-            ax.axvline(age[idx], color='gray', ls=':', alpha=0.5, lw=0.5)
-    
-    plt.tight_layout()
+    for idx in poi.values():
+        ax_lc.axvline(age[idx], color='gray', ls=':', alpha=0.4, lw=0.5)
+
+    sed_pois   = ['loop_ascending', 'loop_maximum', 'end']
+    sed_titles = ['Entering Loop', 'Blue Maximum', 'Returning']
+    sed_colors = ['#2ca02c', '#1f77b4', '#9467bd']
+
+    shared_ylim = None
+
+    # -------------------------
+    # Bottom row: SEDs
+    # -------------------------
+    for i, (poi_name, title, marker_color) in enumerate(
+        zip(sed_pois, sed_titles, sed_colors)
+    ):
+        ax_sed = fig.add_subplot(gs[1, i])
+
+        if poi_name in poi:
+            idx = poi[poi_name]
+            sed_counter = get_sed_counter_at_index(history, idx)
+
+            ax_lc.axvline(age[idx], color=marker_color, lw=1.2, alpha=0.6)
+            ax_lc.scatter(
+                age[idx], history['g'][idx],
+                c=marker_color, s=30,
+                zorder=5, edgecolors='black', linewidths=0.5
+            )
+
+            sed_files = list(sed_dir.glob(f'*_SED_{sed_counter}.csv')) if sed_dir.exists() else []
+
+            if sed_files:
+                wl, fl = [], []
+                with open(sed_files[0]) as f:
+                    import csv
+                    for row in csv.DictReader(f):
+                        try:
+                            w = float(row['wavelengths'])
+                            f_ = float(row['fluxes'])
+                            if w > 0 and f_ > 0:
+                                wl.append(w)
+                                fl.append(f_)
+                        except Exception:
+                            pass
+
+                wl = np.asarray(wl)
+                fl = np.asarray(fl)
+
+                if len(wl):
+                    ax_sed.plot(wl, fl, 'k-', lw=0.7)
+                    ax_sed.set_xscale('log')
+                    xticks = [3500, 5000, 7000, 11000]
+                    ax_sed.xaxis.set_major_locator(FixedLocator(xticks))
+                    ax_sed.xaxis.set_minor_locator(NullLocator())
+                    ax_sed.set_xticklabels([str(x) for x in xticks])
+                    ax_sed.xaxis.get_offset_text().set_visible(False)
+
+
+
+                    ax_sed.set_xlim(3000, 15000)
+
+                    for filt, props in LSST_FILTERS.items():
+                        ax_sed.axvline(
+                            props['wavelength'],
+                            color=props['color'],
+                            alpha=0.35,
+                            lw=1.0
+                        )
+
+                mask = (wl > 3000) & (wl < 11000)
+                if mask.any():
+                    fl_max = fl[mask].max()
+                    if fl_max > global_fl_max:
+                        global_fl_max = fl_max
+
+
+                    add_em_spectrum_regions(ax_sed, alpha=0.03)
+
+
+        # Subtitle INSIDE subplot
+        ax_sed.text(
+            0.0254, 0.9455,
+            title,
+            transform=ax_sed.transAxes,
+            fontsize=8,
+            color=marker_color,
+            ha='left',
+            va='top',
+            weight='bold'
+        )
+
+        ax_sed.text(
+            0.03, 0.95,
+            title,
+            transform=ax_sed.transAxes,
+            fontsize=8,
+            color='k',
+            ha='left',
+            va='top',
+            weight='bold'
+        )
+
+
+        if i != 0:
+            ax_sed.tick_params(axis='y', which='both',
+                               labelbottom=False)
+        else:
+            ax_sed.tick_params(axis='y', which='both',
+                               labelsize=6)
+
+        if global_fl_max > 0:
+            for ax in fig.axes:
+                if ax is not ax_lc:
+                    ax.set_ylim(0, global_fl_max * 1.1)
+
+
+        if i == 0:
+            ax_sed.set_ylabel(r'$F_\lambda$', fontsize=8)
+        else:
+            ax_sed.set_yticklabels([])
+
+        if i == 1:
+            ax_sed.set_xlabel(r'Wavelength ($\mathrm{\AA}$)', fontsize=8)
+
     plt.savefig(output_dir / filename, dpi=300)
     plt.close()
     print(f"Saved: {output_dir / filename}")
+
 
 
 def print_summary(history):
@@ -346,9 +459,6 @@ def main():
     
     # Read history
     history_file = logs_dir / 'history.data'
-    if not history_file.exists():
-        print(f"ERROR: {history_file} not found")
-        return
     
     print(f"Reading: {history_file}")
     history = read_mesa_history(history_file)
@@ -358,13 +468,9 @@ def main():
     # Generate figures
     print("Generating figures...")
     
-    if sed_dir.exists():
-        plot_cmd_with_seds(history, sed_dir, output_dir)
-    else:
-        print(f"Warning: SED directory {sed_dir} not found, skipping CMD+SED figure")
+    plot_cmd_with_seds(history, sed_dir, output_dir)
     
-    plot_hr_diagram(history, output_dir)
-    plot_evolution_panels(history, output_dir)
+    plot_evolution_panels(history, sed_dir, output_dir)
     
     print(f"\nDone! Figures saved to: {output_dir}")
 

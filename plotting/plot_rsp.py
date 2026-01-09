@@ -19,7 +19,7 @@ Author: Miller, Joyce, Mocz et al.
 
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec
+from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
 from pathlib import Path
@@ -28,7 +28,8 @@ import csv
 
 from plot_utils import (
     setup_apj_style, read_mesa_history, find_magnitude_columns,
-    find_poi_rsp, get_model_number_at_index, add_em_spectrum_regions,
+    find_poi_rsp, get_model_number_at_index, get_sed_counter_at_index,
+    add_em_spectrum_regions,
     JOHNSON_FILTERS, APJ_SINGLE_COL, APJ_DOUBLE_COL
 )
 
@@ -126,10 +127,10 @@ def plot_lightcurve_with_seds(history, sed_dir, output_dir,
         
         if poi_name in poi:
             idx = poi[poi_name]
-            model_num = get_model_number_at_index(history, idx)
+            sed_counter = get_sed_counter_at_index(history, idx)
             
             # Load SED
-            sed_files = list(sed_dir.glob(f'*_SED_{model_num}.csv'))
+            sed_files = list(sed_dir.glob(f'*_SED_{sed_counter}.csv'))
             
             if sed_files:
                 sed_data = load_sed_csv(sed_files[0])
@@ -192,13 +193,25 @@ def plot_colorloop(history, sed_dir, output_dir,
     filename : str
         Output filename
     """
+
     fig = plt.figure(figsize=(APJ_SINGLE_COL * 1.3, 4))
     
-    gs = GridSpec(2, 1, height_ratios=[2, 1], hspace=0.3,
-                  left=0.15, right=0.95, top=0.95, bottom=0.12)
-    
+    gs = GridSpec(2, 1, height_ratios=[2, 1],
+                  left=0.015, right=0.999, top=0.999, bottom=0.012,
+                  hspace=0.0) 
+
     ax_loop = fig.add_subplot(gs[0])
-    ax_sed = fig.add_subplot(gs[1])
+
+    gs_sed = GridSpecFromSubplotSpec(
+        2, 1,
+        subplot_spec=gs[1],
+        height_ratios=[3, 1],
+        hspace=0.0
+    )
+
+    ax_sed = fig.add_subplot(gs_sed[0])
+    ax_resid = fig.add_subplot(gs_sed[1], sharex=ax_sed)
+
     
     # Get magnitudes
     mag_cols = find_magnitude_columns(history, 'johnson')
@@ -230,7 +243,7 @@ def plot_colorloop(history, sed_dir, output_dir,
                         cmap='twilight_shifted', s=6, alpha=0.8,
                         edgecolors='none', rasterized=True)
     
-    cbar = fig.colorbar(sc, ax=ax_loop, pad=0.02, aspect=20)
+    cbar = fig.colorbar(sc, ax=ax_loop, pad=0.0, aspect=20)
     cbar.set_label('Phase', fontsize=8)
     cbar.ax.tick_params(labelsize=7)
     
@@ -256,6 +269,12 @@ def plot_colorloop(history, sed_dir, output_dir,
                         arrowprops=dict(arrowstyle='->', color='black', lw=1))
     
     ax_loop.set_xlabel(r'$B - V$ (mag)')
+    ax_loop.xaxis.set_label_position('top')
+    ax_loop.xaxis.tick_top()
+    ax_loop.tick_params(axis='x', which='both',
+                        bottom=False, top=True,
+                        labelbottom=False, labeltop=True)
+
     ax_loop.set_ylabel(r'$V$ (mag)')
     ax_loop.invert_yaxis()
     
@@ -264,33 +283,74 @@ def plot_colorloop(history, sed_dir, output_dir,
         idx_max = poi['maximum_light']
         idx_min = poi['minimum_light']
         
-        model_max = get_model_number_at_index(history, idx_max)
-        model_min = get_model_number_at_index(history, idx_min)
-        
-        for model_num, label, color_line, ls in [
-            (model_max, 'Max light', '#1f77b4', '-'),
-            (model_min, 'Min light', '#d62728', '--')
+        sed_max = get_sed_counter_at_index(history, idx_max)
+        sed_min = get_sed_counter_at_index(history, idx_min)
+                
+        sed_store = {}
+
+        for sed_num, label, color_line, ls in [
+            (sed_max, 'Max light', '#1f77b4', '-'),
+            (sed_min, 'Min light', '#d62728', '--')
         ]:
-            sed_files = list(sed_dir.glob(f'*_SED_{model_num}.csv'))
+            sed_files = list(sed_dir.glob(f'*_SED_{sed_num}.csv'))
             if sed_files:
                 sed_data = load_sed_csv(sed_files[0])
                 if sed_data and 'wavelengths' in sed_data:
                     wl = sed_data['wavelengths']
                     fl = sed_data['fluxes']
-                    
-                    # Normalize for comparison
                     fl_norm = fl / fl.max()
-                    
-                    ax_sed.plot(wl, fl_norm, color=color_line, ls=ls, 
-                               lw=0.9, label=label, alpha=0.9)
-    
+
+                    sed_store[label] = fl_norm
+                    sed_store[f'{label}_wl'] = wl
+
+                    ax_sed.plot(
+                        wl, fl_norm,
+                        color=color_line, ls=ls, lw=0.9,
+                        label=label, alpha=0.9
+                    )
+
+    if 'Max light' in sed_store and 'Min light' in sed_store:
+        wl_max = sed_store['Max light_wl']
+        fl_max = sed_store['Max light']
+        wl_min = sed_store['Min light_wl']
+        fl_min = sed_store['Min light']
+
+        fl_min_interp = np.interp(wl_max, wl_min, fl_min)
+
+        resid = fl_max - fl_min_interp
+
+        ax_resid.plot(
+            wl_max, resid,
+            color='black', lw=0.8
+        )
+
     ax_sed.set_xscale('log')
     ax_sed.set_xlim(3500, 10000)
     ax_sed.set_ylim(0, 1.1)
-    ax_sed.set_xlabel(r'Wavelength ($\mathrm{\AA}$)')
-    ax_sed.set_ylabel(r'Normalized $F_\lambda$')
-    ax_sed.legend(loc='upper right', fontsize=7, framealpha=0.9)
-    
+
+    ax_sed.set_ylim(0., 1.1)
+    ax_sed.set_yticks([0.2, 0.4, 0.6, 0.8, 1.0])
+    ax_sed.set_yticklabels(['0.2', '0.4', '0.6', '0.8', '1.0'])
+
+
+
+    ax_sed.set_ylabel(r'Normalized $F_\lambda$', fontsize=9)
+    ax_sed.legend(loc='upper right', fontsize=5, framealpha=0.9)
+    ax_sed.tick_params(labelsize=7)
+
+    ax_resid.set_xscale('log')
+    ax_resid.set_ylabel(r'$\Delta F_\lambda$', fontsize=9)
+    ax_resid.set_xlabel(r'Wavelength ($\mathrm{\AA}$)')
+    ax_resid.tick_params(labelsize=7)
+
+    ax_resid.set_ylim(-0.012, 0.012)
+    ax_resid.set_yticks([-0.01, 0.0, 0.01])
+    ax_resid.axhline(y = 0.0, color='k', lw=0.8, ls='--', alpha = 0.5)
+
+    ax_resid.set_yticklabels(['-0.01', '0.00', '0.01'])
+
+    plt.setp(ax_sed.get_xticklabels(), visible=False)
+
     add_em_spectrum_regions(ax_sed, alpha=0.03)
     
     plt.savefig(output_dir / filename, dpi=300)
@@ -338,9 +398,9 @@ def plot_sed_phase_comparison(history, sed_dir, output_dir,
             continue
         
         idx = poi[poi_name]
-        model_num = get_model_number_at_index(history, idx)
+        sed_counter = get_sed_counter_at_index(history, idx)
         
-        sed_files = list(sed_dir.glob(f'*_SED_{model_num}.csv'))
+        sed_files = list(sed_dir.glob(f'*_SED_{sed_counter}.csv'))
         if sed_files:
             sed_data = load_sed_csv(sed_files[0])
             if sed_data and 'wavelengths' in sed_data:
@@ -372,13 +432,20 @@ def load_sed_csv(filepath):
             data = {'wavelengths': [], 'fluxes': [], 'convolved_flux': []}
             
             for row in reader:
-                for key in data:
-                    try:
-                        val = float(row[key])
-                        if val != 0:
-                            data[key].append(val)
-                    except (ValueError, KeyError):
-                        pass
+                try:
+                    wl = float(row['wavelengths'])
+                    fl = float(row['fluxes'])
+                    # Only keep rows where both are valid and non-zero
+                    if wl > 0 and fl > 0:
+                        data['wavelengths'].append(wl)
+                        data['fluxes'].append(fl)
+                        try:
+                            cf = float(row.get('convolved_flux', 0))
+                            data['convolved_flux'].append(cf)
+                        except (ValueError, TypeError):
+                            data['convolved_flux'].append(0)
+                except (ValueError, KeyError):
+                    continue
             
             for key in data:
                 data[key] = np.array(data[key])

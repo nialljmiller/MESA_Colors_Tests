@@ -30,7 +30,8 @@ import csv
 
 from plot_utils import (
     setup_apj_style, read_mesa_history, find_magnitude_columns,
-    get_model_number_at_index, add_em_spectrum_regions,
+    get_model_number_at_index, get_sed_counter_at_index,
+    add_em_spectrum_regions,
     LSST_FILTERS, APJ_SINGLE_COL, APJ_DOUBLE_COL
 )
 
@@ -43,13 +44,20 @@ def load_sed_csv(filepath):
             data = {'wavelengths': [], 'fluxes': [], 'convolved_flux': []}
             
             for row in reader:
-                for key in data:
-                    try:
-                        val = float(row[key])
-                        if val != 0:
-                            data[key].append(val)
-                    except (ValueError, KeyError):
-                        pass
+                try:
+                    wl = float(row['wavelengths'])
+                    fl = float(row['fluxes'])
+                    # Only keep rows where both are valid and non-zero
+                    if wl > 0 and fl > 0:
+                        data['wavelengths'].append(wl)
+                        data['fluxes'].append(fl)
+                        try:
+                            cf = float(row.get('convolved_flux', 0))
+                            data['convolved_flux'].append(cf)
+                        except (ValueError, TypeError):
+                            data['convolved_flux'].append(0)
+                except (ValueError, KeyError):
+                    continue
             
             for key in data:
                 data[key] = np.array(data[key])
@@ -199,9 +207,9 @@ def plot_cmd_with_seds(history, sed_dir, output_dir,
         
         if poi_name in poi:
             idx = poi[poi_name]
-            model_num = get_model_number_at_index(history, idx)
+            sed_counter = get_sed_counter_at_index(history, idx)
             
-            sed_files = list(sed_dir.glob(f'*_SED_{model_num}.csv'))
+            sed_files = list(sed_dir.glob(f'*_SED_{sed_counter}.csv'))
             
             if sed_files:
                 sed_data = load_sed_csv(sed_files[0])
@@ -602,9 +610,9 @@ def plot_summary(history, sed_dir, output_dir, filename='fig_wd_summary.pdf'):
             continue
         
         idx = poi[poi_name]
-        model_num = get_model_number_at_index(history, idx)
+        sed_counter = get_sed_counter_at_index(history, idx)
         
-        sed_files = list(sed_dir.glob(f'*_SED_{model_num}.csv'))
+        sed_files = list(sed_dir.glob(f'*_SED_{sed_counter}.csv'))
         if sed_files:
             sed_data = load_sed_csv(sed_files[0])
             if sed_data and 'wavelengths' in sed_data:
@@ -669,11 +677,11 @@ def main():
     parser = argparse.ArgumentParser(
         description='Generate MESA Colors WD cooling figures'
     )
-    parser.add_argument('--logs_dir', type=str, default='../WD/LOGS',
+    parser.add_argument('--logs_dir', type=str, default='LOGS',
                        help='Path to MESA LOGS directory')
-    parser.add_argument('--sed_dir', type=str, default='../WD/SED',
+    parser.add_argument('--sed_dir', type=str, default='SED',
                        help='Path to SED output directory')
-    parser.add_argument('--output_dir', type=str, default='../WD/figures',
+    parser.add_argument('--output_dir', type=str, default='figures',
                        help='Output directory for figures')
     args = parser.parse_args()
     

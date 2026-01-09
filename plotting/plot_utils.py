@@ -212,20 +212,25 @@ def read_sed_file(filepath):
     try:
         with open(filepath, 'r') as f:
             reader = csv.DictReader(f)
-            fieldnames = [field.strip() for field in reader.fieldnames]
             
-            data = {field: [] for field in fieldnames}
+            data = {'wavelengths': [], 'fluxes': [], 'convolved_flux': []}
             
             for row in reader:
-                if any(not str(value).strip() for value in row.values()):
+                try:
+                    wl = float(row['wavelengths'])
+                    fl = float(row['fluxes'])
+                    # Only keep rows where both wavelength and flux are valid and non-zero
+                    if wl > 0 and fl > 0:
+                        data['wavelengths'].append(wl)
+                        data['fluxes'].append(fl)
+                        # Convolved flux is optional
+                        try:
+                            cf = float(row.get('convolved_flux', 0))
+                            data['convolved_flux'].append(cf)
+                        except (ValueError, TypeError):
+                            data['convolved_flux'].append(0)
+                except (ValueError, KeyError):
                     continue
-                for field in fieldnames:
-                    try:
-                        val = float(row[field.strip()])
-                        if val != 0:  # Skip zero-padded rows
-                            data[field].append(val)
-                    except (ValueError, KeyError):
-                        pass
             
             # Convert to arrays
             result = {}
@@ -624,6 +629,16 @@ def find_poi_starspot(data_spotted, data_unspotted):
 def get_model_number_at_index(data, idx):
     """Get model number at a given array index."""
     return int(data['model_number'][idx])
+
+
+def get_sed_counter_at_index(data, idx):
+    """
+    Get SED file counter for a given array index.
+    
+    SED files are numbered sequentially starting at 1,
+    corresponding to history row indices 0, 1, 2, ...
+    """
+    return idx + 1
 
 
 def annotate_point(ax, x, y, label, offset=(5, 5), fontsize=8, **kwargs):

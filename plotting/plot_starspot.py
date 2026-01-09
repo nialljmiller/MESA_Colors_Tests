@@ -24,7 +24,8 @@ import csv
 
 from plot_utils import (
     setup_apj_style, read_mesa_history, find_magnitude_columns,
-    get_model_number_at_index, add_em_spectrum_regions,
+    get_model_number_at_index, get_sed_counter_at_index,
+    add_em_spectrum_regions,
     LSST_FILTERS, APJ_SINGLE_COL, APJ_DOUBLE_COL
 )
 
@@ -37,13 +38,20 @@ def load_sed_csv(filepath):
             data = {'wavelengths': [], 'fluxes': [], 'convolved_flux': []}
             
             for row in reader:
-                for key in data:
-                    try:
-                        val = float(row[key])
-                        if val != 0:
-                            data[key].append(val)
-                    except (ValueError, KeyError):
-                        pass
+                try:
+                    wl = float(row['wavelengths'])
+                    fl = float(row['fluxes'])
+                    # Only keep rows where both are valid and non-zero
+                    if wl > 0 and fl > 0:
+                        data['wavelengths'].append(wl)
+                        data['fluxes'].append(fl)
+                        try:
+                            cf = float(row.get('convolved_flux', 0))
+                            data['convolved_flux'].append(cf)
+                        except (ValueError, TypeError):
+                            data['convolved_flux'].append(0)
+                except (ValueError, KeyError):
+                    continue
             
             for key in data:
                 data[key] = np.array(data[key])
@@ -134,11 +142,14 @@ def plot_chromatic_signature_with_seds(history_spotted, history_unspotted,
     model_s = get_model_number_at_index(history_spotted, idx_s)
     model_u = get_model_number_at_index(history_unspotted, idx_u)
     
+    sed_counter_s = get_sed_counter_at_index(history_spotted, idx_s)
+    sed_counter_u = get_sed_counter_at_index(history_unspotted, idx_u)
+    
     sed_plotted = False
     
     # Load and plot spotted SED
-    sed_files_s = list(sed_dir_spotted.glob(f'*_SED_{model_s}.csv'))
-    sed_files_u = list(sed_dir_unspotted.glob(f'*_SED_{model_u}.csv'))
+    sed_files_s = list(sed_dir_spotted.glob(f'*_SED_{sed_counter_s}.csv'))
+    sed_files_u = list(sed_dir_unspotted.glob(f'*_SED_{sed_counter_u}.csv'))
     
     if sed_files_s:
         sed_data_s = load_sed_csv(sed_files_s[0])
@@ -213,8 +224,11 @@ def plot_sed_ratio(history_spotted, history_unspotted,
     model_s = get_model_number_at_index(history_spotted, idx_s)
     model_u = get_model_number_at_index(history_unspotted, idx_u)
     
-    sed_files_s = list(sed_dir_spotted.glob(f'*_SED_{model_s}.csv'))
-    sed_files_u = list(sed_dir_unspotted.glob(f'*_SED_{model_u}.csv'))
+    sed_counter_s = get_sed_counter_at_index(history_spotted, idx_s)
+    sed_counter_u = get_sed_counter_at_index(history_unspotted, idx_u)
+    
+    sed_files_s = list(sed_dir_spotted.glob(f'*_SED_{sed_counter_s}.csv'))
+    sed_files_u = list(sed_dir_unspotted.glob(f'*_SED_{sed_counter_u}.csv'))
     
     if not sed_files_s or not sed_files_u:
         print("SED files not found for ratio plot")
@@ -311,15 +325,15 @@ def main():
     parser = argparse.ArgumentParser(
         description='Generate MESA Colors starspot figures'
     )
-    parser.add_argument('--logs_spotted', type=str, default='../starspots/LOGS_spotted',
+    parser.add_argument('--logs_spotted', type=str, default='LOGS_spotted',
                        help='LOGS directory for spotted model')
-    parser.add_argument('--logs_unspotted', type=str, default='../starspots/LOGS_unspotted',
+    parser.add_argument('--logs_unspotted', type=str, default='LOGS_unspotted',
                        help='LOGS directory for unspotted model')
-    parser.add_argument('--sed_spotted', type=str, default='../starspots/SED_spotted',
+    parser.add_argument('--sed_spotted', type=str, default='SED_spotted',
                        help='SED directory for spotted model')
-    parser.add_argument('--sed_unspotted', type=str, default='../starspots/SED_unspotted',
+    parser.add_argument('--sed_unspotted', type=str, default='SED_unspotted',
                        help='SED directory for unspotted model')
-    parser.add_argument('--output_dir', type=str, default='../starspots/figures',
+    parser.add_argument('--output_dir', type=str, default='figures',
                        help='Output directory for figures')
     args = parser.parse_args()
     
