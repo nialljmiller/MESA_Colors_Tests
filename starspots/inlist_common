@@ -76,4 +76,8 @@
    ! AB magnitude system (standard for LSST)
    mag_system = 'AB'
 
+   ! Diagnostics
+   colors_results_directory = 'SED'
+   make_csv = .true.
+
 / ! end of colors namelist
