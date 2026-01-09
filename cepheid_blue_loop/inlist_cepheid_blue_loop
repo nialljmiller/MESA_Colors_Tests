@@ -115,8 +115,8 @@
    mag_system = 'AB'
 
    ! Diagnostics
-   colors_results_directory = 'COLORS_OUTPUT'
-   make_csv = .false.
+   colors_results_directory = 'SED'
+   make_csv = .true.
 
 / ! end of colors namelist
 
