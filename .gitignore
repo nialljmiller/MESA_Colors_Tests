@@ -1,0 +1,55 @@
+# ----------------------------
+# MESA run outputs / data
+# ----------------------------
+
+# LOGS and runtime data
+LOGS/
+LOGS_to_TP/
+profiles.index
+profile*.data
+history*.data
+*.data
+
+# Generated SEDs / photometry
+SED/
+COLORS_OUTPUT/
+photos/
+plots/
+figures/
+pgstar_out/
+
+# CSV outputs
+*.csv
+
+# ----------------------------
+# Build / compile artifacts
+# ----------------------------
+build/
+mk/
+re/
+ck/
+clean/
+clean.sh
+Makefile.old
+
+# ----------------------------
+# Python cache / temp
+# ----------------------------
+__pycache__/
+*.pyc
+*.pyo
+
+# ----------------------------
+# Movies / figures
+# ----------------------------
+*.mp4
+*.gif
+*.png
+*.pdf
+
+# ----------------------------
+# Editor / OS junk
+# ----------------------------
+*.swp
+*.swo
+.DS_Store
