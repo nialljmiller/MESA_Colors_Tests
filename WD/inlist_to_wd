@@ -69,7 +69,7 @@
 
       ! Backup stopping conditions
       max_age = 15d9             ! 15 Gyr max
-      max_model_number = 50000   ! Safety limit
+      max_model_number = 500000   ! Safety limit
 
       ! ========================================
       ! OUTPUT CONTROL

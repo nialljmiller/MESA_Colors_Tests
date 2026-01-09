@@ -677,11 +677,11 @@ def main():
     parser = argparse.ArgumentParser(
         description='Generate MESA Colors WD cooling figures'
     )
-    parser.add_argument('--logs_dir', type=str, default='LOGS',
+    parser.add_argument('--logs_dir', type=str, default='../WD/LOGS',
                        help='Path to MESA LOGS directory')
-    parser.add_argument('--sed_dir', type=str, default='SED',
+    parser.add_argument('--sed_dir', type=str, default='../WD/SED',
                        help='Path to SED output directory')
-    parser.add_argument('--output_dir', type=str, default='figures',
+    parser.add_argument('--output_dir', type=str, default='../WD/figures',
                        help='Output directory for figures')
     args = parser.parse_args()
     
