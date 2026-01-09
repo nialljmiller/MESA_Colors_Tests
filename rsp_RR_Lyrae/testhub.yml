@@ -49,3 +49,15 @@
       solver_calls_made:        12022
       solver_calls_failed:            0
       solver_iterations:        38579
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:   9.58
+      model_number:        12022
+      star_age:     2.1565318544498235E-02
+      num_retries:            0
+      log_rel_run_E_err:        -7.1843976508414222
+      steps:        12022
+      retries:            0
+      redos:            0
+      solver_calls_made:        12022
+      solver_calls_failed:            0
+      solver_iterations:        38579

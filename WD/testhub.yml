@@ -13,3 +13,15 @@
     - inlist: inlist_to_wd
     - inlist: inlist_to_wd
     - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+      runtime_minutes:  97.60
+      model_number:        11988
+      star_age:     1.2275253163614204E+10
+      num_retries:           42
+      log_rel_run_E_err:        -7.4871306206238302
+      steps:        12123
+      retries:           44
+      redos:            0
+      solver_calls_made:        12167
+      solver_calls_failed:           44
+      solver_iterations:        60135

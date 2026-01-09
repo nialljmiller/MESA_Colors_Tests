@@ -2,7 +2,7 @@
 !
          32780 -- model for mesa/star, cell boundary velocities (v), RSP luminosity (L), turbulent energy (et_RSP), and radiative flux (erad_RSP). cgs units. lnd=ln(density), lnT=ln(temperature), lnR=ln(radius), dq=fraction of xmstar=(mstar-mcenter) in cell; remaining cols are mass fractions.
 
-                  version_number   '48b8e84'
+                  version_number   'd9e66b3b'
                           M/Msun      6.5000000000000002D-01
                     model_number                           12022
                         star_age      2.1565318544498235D-02

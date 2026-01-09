@@ -2,7 +2,7 @@
 &star_job
 
    read_extra_star_job_inlist(1) = .true.
-   extra_star_job_inlist_name(1) = 'inlist_to_TP_AGB'
+   extra_star_job_inlist_name(1) = 'inlist_TP_AGB'
 
 / ! end of star_job namelist
 
@@ -10,7 +10,7 @@
 &eos
 
    read_extra_eos_inlist(1) = .true.
-   extra_eos_inlist_name(1) = 'inlist_to_TP_AGB'
+   extra_eos_inlist_name(1) = 'inlist_TP_AGB'
 
 / ! end of eos namelist
 
@@ -18,7 +18,7 @@
 &kap
 
    read_extra_kap_inlist(1) = .true.
-   extra_kap_inlist_name(1) = 'inlist_to_TP_AGB'
+   extra_kap_inlist_name(1) = 'inlist_TP_AGB'
 
 / ! end of kap namelist
 
@@ -26,7 +26,7 @@
 &colors
 
    read_extra_colors_inlist(1) = .true.
-   extra_colors_inlist_name(1) = 'inlist_to_TP_AGB'
+   extra_colors_inlist_name(1) = 'inlist_TP_AGB'
 
 / ! end of colors namelist
 
@@ -34,7 +34,7 @@
 &controls
 
    read_extra_controls_inlist(1) = .true.
-   extra_controls_inlist_name(1) = 'inlist_to_TP_AGB'
+   extra_controls_inlist_name(1) = 'inlist_TP_AGB'
 
 / ! end of controls namelist
 
@@ -42,6 +42,6 @@
 &pgstar
 
    read_extra_pgstar_inlist(1) = .true.
-   extra_pgstar_inlist_name(1) = 'inlist_to_TP_AGB'
+   extra_pgstar_inlist_name(1) = 'inlist_TP_AGB'
 
 / ! end of pgstar namelist

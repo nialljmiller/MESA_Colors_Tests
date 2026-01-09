@@ -3,3 +3,27 @@
     - inlist: inlist_to_TP_AGB_header
     - inlist: inlist_to_TP_AGB_header
     - inlist: inlist_to_TP_AGB_header
+    - inlist: inlist_to_TP_AGB_header
+      runtime_minutes:  51.90
+      model_number:         8316
+      star_age:     1.1486757774042406E+09
+      num_retries:           34
+      log_rel_run_E_err:        -7.0157432444245629
+      steps:         8326
+      retries:           35
+      redos:            0
+      solver_calls_made:         8361
+      solver_calls_failed:           35
+      solver_iterations:        41721
+    - inlist: inlist_TP_AGB_header
+      runtime_minutes:   0.02
+      model_number:            2
+      star_age:     5.0000000000000000E+05
+      num_retries:            0
+      log_rel_run_E_err:        -7.0172095259495189
+      steps:            2
+      retries:            0
+      redos:            0
+      solver_calls_made:            2
+      solver_calls_failed:            0
+      solver_iterations:           10
