@@ -1,109 +1,63 @@
-.. _starspots:
+Starspots CMD Test Suite
+=========================
 
-******************
-starspots
-******************
+Recreates MESA VI Figure 15 as a color-magnitude diagram using MESA Colors.
 
-This test case demonstrates how MESA's starspot implementation affects 
-synthetic photometry, highlighting the chromatic signature of surface 
-magnetic activity.
+Grid Parameters (matching Figure 15)
+------------------------------------
 
-Scientific Context
-==================
+==================  ============================
+Parameter           Values
+==================  ============================
+Masses              0.3, 0.6, 0.7, 0.9, 1.1 M☉
+fspot               0.2, 0.4, 0.6, 0.8
+xspot               0.85 (fixed)
+Metallicity         Z = 0.014
+Total models        20
+==================  ============================
 
-Starspots on magnetically active cool stars modulate stellar brightness 
-in a wavelength-dependent manner. Because spots are cooler than the 
-surrounding photosphere, they emit less flux at all wavelengths, but 
-the suppression is stronger in blue bands than in red. This chromatic 
-signature is critical for:
+Photometric output: LSST ugrizy → CMD axes: g-r vs M_g
 
-- Characterizing stellar activity in exoplanet host stars
-- Understanding photometric variability in M dwarfs  
-- Interpreting LSST and PLATO time-series photometry
+File Structure
+--------------
 
-MESA implements the YREC SPOTS formalism 
-(`Somers et al. 2015 <https://ui.adsabs.harvard.edu/abs/2015ApJ...807..174S>`__)
-as an atmospheric boundary condition modification. Two parameters control 
-the spot properties:
+::
 
-- **fspot**: Coverage fraction (spot filling factor)
-- **xspot**: Temperature contrast, T_spot/T_photosphere
+    starspots_cmd/
+    ├── inlist                  # Main inlist (template with <<PLACEHOLDERS>>)
+    ├── history_columns.list    # LSST magnitude columns
+    ├── src/
+    │   └── run_star_extras.f90 # Starspot gradr_factor implementation
+    ├── run_grid.py             # Batch runner (modifies inlist, runs 20 models)
+    ├── clean.sh                # Remove all outputs
+    └── python_analysis/
+        └── plot_cmd.py         # Generate CMD figure
 
-Setup
-=====
+Running
+-------
 
-This demonstration evolves a 0.7 |Msun| solar-metallicity star to main 
-sequence equilibrium (5 Gyr), then compares synthetic photometry with 
-and without spot coverage.
+.. code-block:: bash
 
-Spot parameters follow observational constraints from 
-`Cao et al. 2022 <https://ui.adsabs.harvard.edu/abs/2022ApJ...924...84C>`__:
+    # 1. Compile MESA
+    ./mk
+    
+    # 2. Run grid (20 models)
+    python run_grid.py
+    
+    # 3. Plot CMD
+    cd python_analysis
+    python plot_cmd.py
 
-- ``fspot = 0.34`` (34% spot coverage)
-- ``xspot = 0.85`` (spots 15% cooler than photosphere)
+Output: ``LOGS_M{mass}_f{fspot}/history.data`` for each model
 
-Filters: LSST ugrizy (AB magnitude system)
+Physics
+-------
 
-Running the Test
-================
+Starspot implementation via ``other_gradr_factor``:
 
-The workflow consists of three stages:
+- ``x_ctrl(1)`` = fspot (filling factor)
+- ``x_ctrl(2)`` = xspot (temperature contrast)
+- gradr_factor = 1 / [fspot × xspot⁴ + (1 - fspot)]
 
-1. **Evolve to main sequence**::
+References: Jermyn et al. 2023 (MESA VI §7.1), Somers et al. 2020
 
-      ./rn
-
-   This runs ``inlist_evolve``, creating ``ms_model.mod``.
-
-2. **Run spotted case**::
-
-   Edit ``inlist`` to point to ``inlist_spotted``, then::
-
-      ./rn
-
-3. **Run unspotted case**::
-
-   Edit ``inlist`` to point to ``inlist_unspotted``, then::
-
-      ./rn
-
-4. **Analyze results**::
-
-      python python_analysis/compare_photometry.py
-
-Alternatively, use the automated script::
-
-   ./run_all.sh
-
-Expected Results
-================
-
-The spotted model shows:
-
-- **Fainter overall**: Reduced flux due to cool spot coverage
-- **Chromatic signature**: Larger magnitude difference in blue (u, g) 
-  than red (i, z) bands
-- **Color shift**: Spotted star appears redder (higher g-r, r-i values)
-
-The magnitude difference Δm = m_spotted - m_unspotted should increase 
-toward bluer wavelengths, demonstrating how spots affect blue bands 
-more strongly than red.
-
-Output Files
-============
-
-- ``LOGS_evolve/``: History during MS evolution
-- ``LOGS_spotted/``: History with spots enabled
-- ``LOGS_unspotted/``: History without spots
-- ``COLORS_spotted/``: Synthetic photometry with spots
-- ``COLORS_unspotted/``: Synthetic photometry without spots
-- ``plots/``: Analysis figures
-
-References
-==========
-
-- Somers, G., et al. 2015, ApJ, 807, 174 (SPOTS formalism)
-- Cao, L., et al. 2022, ApJ, 924, 84 (Spot parameters from observations)
-- MESA VI, Jermyn et al. 2023, ApJS, 265, 15 (MESA implementation)
-
-Last-Updated: Jan 2025

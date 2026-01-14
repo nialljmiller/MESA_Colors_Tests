@@ -1,33 +1,30 @@
-! history_columns.list for starspots demonstration
-! Focused on photometric and atmospheric properties
+! history_columns.list for starspots CMD test suite
+! Columns needed to construct color-magnitude diagram
 
-! Model info
-model_number
+! Standard stellar parameters
 star_age
 star_mass
-
-! Fundamental parameters
 log_L
 log_Teff
 log_R
 log_g
 
-! Surface properties
-photosphere_cell_T
-photosphere_cell_opacity
+! Bolometric properties
+abs_mag_bol
 
-! Convection zone info
-cz_bot_mass
-cz_top_mass
+! LSST ugrizy synthetic magnitudes
+abs_mag_LSST_u
+abs_mag_LSST_g
+abs_mag_LSST_r
+abs_mag_LSST_i
+abs_mag_LSST_z
+abs_mag_LSST_y
 
-! Asteroseismic (for completeness)
-nu_max
-delta_nu
+! Evolutionary state indicators
+center_h1
+center_he4
+surface_h1
 
-! Core abundances
-center h1
-center he4
-
-! Surface abundances  
-surface h1
-surface he4
+! Mixing and convection
+mixing_length_alpha
+mlt_mixing_length

@@ -49,3 +49,23 @@ stages:
       solver_calls_made:         1797
       solver_calls_failed:            1
       solver_iterations:        11494
+    - inlist: inlist_starspots_header
+    - inlist: inlist_starspots_header
+    - inlist: inlist_starspots_header
+    - inlist: inlist_starspots_header
+    - inlist: inlist_starspots_header
+    - inlist: inlist_starspots_header
+    - inlist: inlist_starspots_header
+    - inlist: inlist_starspots_header
+    - inlist: inlist_starspots_header
+    - inlist: inlist_starspots_header
+    - inlist: inlist_starspots_header
+    - inlist: inlist_starspots_header
+    - inlist: inlist_starspots_header
+    - inlist: inlist_starspots_header
+    - inlist: inlist_starspots_header
+    - inlist: inlist_starspots_header
+    - inlist: inlist_starspots_header
+    - inlist: inlist_starspots_header
+    - inlist: inlist_starspots_header
+    - inlist: inlist_starspots_header

@@ -17,7 +17,7 @@
 
    ! save a model at the end of the run
    save_model_when_terminate = .true.
-   save_model_filename = 'final.mod'
+   save_model_filename = 'ms_model.mod'
 
    new_rotation_flag = .false.
 
@@ -41,6 +41,8 @@
    ! network
    change_net = .true.
    new_net_name= 'pp_extras.net' !
+   
+   warn_run_star_extras = .false.
 
 / ! end of star_job namelist
 
@@ -49,7 +51,7 @@
 /
 
 &kap
-   Zbase = 0.0200 !0.014
+   Zbase = 0.014
 
    ! opacities with AGSS09 abundances
    kap_file_prefix = 'a09'
@@ -63,14 +65,14 @@
    max_age = 24.63d9 !26d9 !0.8d9
 
    do_starspots = .true.
-   fspot = 0.34d0
+   fspot = 0.8d0
    xspot = 0.85d0
 
    atm_option = 'table'
    atm_table = 'photosphere'
 
    warn_when_large_rel_run_E_err = 99d0 !0.02d0
-   log_directory = 'LOGS'
+   log_directory = 'LOGS_M0.3_f0.8'
    write_profiles_flag = .false.
 
    max_num_profile_models = -1
@@ -81,9 +83,9 @@
    photo_interval = 100
 
    ! starting specifications
-   initial_mass = 0.9 ! in Msun units
+   initial_mass = 0.3 ! in Msun units
    min_timestep_limit=0
-   max_model_number = -1 !1500
+   max_model_number = 150
 
    cool_wind_RGB_scheme = 'Reimers'
    cool_wind_AGB_scheme = 'Blocker'
@@ -106,7 +108,6 @@
    time_delta_coeff = 1.0 !0.8 !0.5
 
    varcontrol_target = 1e-4
-   !max_allowed_nz = 50000
 
    ! to help with convergence
    okay_to_reduce_gradT_excess = .true.
@@ -131,7 +132,6 @@
    use_gold_tolerances = .true.
 
    max_number_retries = -1 !1000 !100
-   max_model_number = 10000 !-1
 
    ! better resolution of the Henyey hook
    delta_lg_XH_cntr_max = -1
@@ -141,7 +141,7 @@
 
 &pgstar
 
-   pgstar_interval = 50
+   pgstar_interval = 1
 
    file_white_on_black_flag = .true.
    file_device = 'vcps' ! postscript

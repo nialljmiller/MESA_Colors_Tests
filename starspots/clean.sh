@@ -1,7 +1,10 @@
 #!/bin/bash
-# Clean all output files
+# Clean all output from starspots CMD grid
 
-rm -rf LOGS_* COLORS_* pgstar_out photos plots
-rm -f ms_model.mod *.mod
-rm -f *.png
-echo "Cleaned output directories and model files"
+rm -rf LOGS_M*_f*/
+rm -f *.mod
+rm -f inlist_template
+rm -rf photos*/
+rm -f python_analysis/*.pdf python_analysis/*.png
+
+echo "Cleaned all grid outputs"
