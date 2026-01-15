@@ -13,6 +13,10 @@
 
    pgstar_flag = .false.
 
+   ! save a model at the end of the run
+   save_model_when_terminate = .true.
+   save_model_filename = 'ms_model.mod'
+
 / ! end of star_job namelist
 
 
