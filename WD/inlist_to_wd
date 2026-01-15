@@ -111,17 +111,6 @@
       cool_wind_AGB_scheme = 'Blocker'
       Blocker_scaling_factor = 0.1d0
 
-      ! ========================================
-      ! SOLVER TOLERANCES
-      ! ========================================
-      tol_max_residual = 1d-3        ! Relax from default 1e-4
-      relax_hard_limits_after_retry = 50
-
-      ! Help with TP-AGB convergence
-      okay_to_reduce_gradT_excess = .true.
-      gradT_excess_max_change = 0.001d0
-
-      
 
 /
 
