@@ -9,22 +9,8 @@ log_Teff
 log_R
 log_g
 
-! Bolometric properties
-abs_mag_bol
-
-! LSST ugrizy synthetic magnitudes
-abs_mag_LSST_u
-abs_mag_LSST_g
-abs_mag_LSST_r
-abs_mag_LSST_i
-abs_mag_LSST_z
-abs_mag_LSST_y
-
 ! Evolutionary state indicators
 center_h1
 center_he4
 surface_h1
 
-! Mixing and convection
-mixing_length_alpha
-mlt_mixing_length
