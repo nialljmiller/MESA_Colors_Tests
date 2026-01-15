@@ -1,4 +1,8 @@
 &star_job
+
+   history_columns_file = 'history_master.list'
+   profile_columns_file = 'profile_master.list'
+
    create_pre_main_sequence_model = .true.
 
    set_uniform_initial_composition = .true.
@@ -16,6 +20,8 @@
    ! save a model at the end of the run
    save_model_when_terminate = .true.
    save_model_filename = 'ms_model.mod'
+
+   warn_run_star_extras = .false.
 
 / ! end of star_job namelist
 
