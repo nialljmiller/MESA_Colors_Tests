@@ -36,13 +36,13 @@ mkdir -p "$LOCAL_ROOT"
 #
 # This guarantees we only pull data products.
 # -----------------------------
+#  --include '*/SED/***' \
 
 rsync -avz --delete \
   -e "ssh $SSH_OPTS" \
   --prune-empty-dirs \
   --include '*/' \
-  --include '*/SED/***' \
-  --include '*/LOGS/***' \
+  --include '*/LOGS*/***' \
   --exclude '*' \
   "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_ROOT}/" \
   "${LOCAL_ROOT}/"
