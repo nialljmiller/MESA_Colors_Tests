@@ -5,13 +5,6 @@
 
    create_pre_main_sequence_model = .true.
 
-   set_uniform_initial_composition = .true.
-   initial_h1 = 0.7349
-   initial_h2 = 2.75d-5
-   initial_he3 = 8.5d-5
-   initial_he4 = 0.24
-   initial_zfracs = 6
-
    change_net = .true.
    new_net_name = 'pp_extras.net'
 
