@@ -109,7 +109,31 @@
       cool_wind_RGB_scheme = 'Reimers'
       Reimers_scaling_factor = 0.5d0
       cool_wind_AGB_scheme = 'Blocker'
-      Blocker_scaling_factor = 0.1d0
+      Blocker_scaling_factor = 0.5d0
+
+
+      ! ========================================
+      ! THERMAL PULSE HANDLING
+      ! ========================================
+      ! Relax convergence during thermal pulses
+      varcontrol_target = 5d-4  ! Less strict than 1d-3
+
+      ! Allow smaller timesteps during difficult phases
+      min_timestep_limit = 1d-8  ! Was defaulting to 1d-6
+
+      ! Help solver during thermal pulses
+      okay_to_reduce_gradv_flag = .true.
+      reduce_gradv_flag_at_high_T = .true.
+
+      ! Increase max retries for thermal pulse zones
+      convergence_ignore_equL_residuals = .true.
+      max_number_retries = 100  ! Default is 40, you hit that limit
+
+      ! Solver tolerances
+      tol_max_residual3 = 1d-3  ! Relax from default
+      tol_max_residual1 = 1d-3
+
+
 
 
 /
