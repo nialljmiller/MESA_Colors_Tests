@@ -122,7 +122,7 @@
       max_number_retries = 200  ! Increase from 100
 
       ! Solver tolerances - set BASE parameter
-      tol_max_residual = 1d-3   ! THIS is what matters
+      tol_max_residual2 = 1d-3
       tol_max_residual3 = 1d-3
       tol_max_residual1 = 1d-3
       
