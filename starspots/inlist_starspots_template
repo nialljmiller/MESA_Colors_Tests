@@ -46,7 +46,7 @@
 
    ! Stop at end of main sequence
    xa_central_lower_limit_species(1) = 'h1'
-   xa_central_lower_limit(1) = 0.01
+   xa_central_lower_limit(1) = 0.0000000001
 
    ! Atmosphere
    atm_option = 'table'
