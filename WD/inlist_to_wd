@@ -119,7 +119,7 @@
       varcontrol_target = 5d-4  ! Less strict than 1d-3
 
       ! Allow smaller timesteps during difficult phases
-      min_timestep_limit = 1d-8  ! Was defaulting to 1d-6
+      min_timestep_limit = 1d-9  ! Was defaulting to 1d-6
 
       max_number_retries = 100  ! Default is 40, you hit that limit
 
