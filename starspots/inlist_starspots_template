@@ -3,6 +3,7 @@
    history_columns_file = 'history_master.list'
    profile_columns_file = 'profile_master.list'
 
+   pre_ms_relax_num_steps = 1000
    create_pre_main_sequence_model = .true.
 
    change_net = .true.
