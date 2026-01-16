@@ -32,16 +32,20 @@
 
 &controls
    initial_mass = 0.9
-
+   
    ! Starspots
    do_starspots = .true.
    fspot = 0.34d0
    xspot = 0.85d0
-
+   
+   ! MLT prescription - CRITICAL FOR FIGURE 15
+   mixing_length_alpha = 1.95
+   MLT_option = 'Henyey'
+   
    ! Stop at end of main sequence
    xa_central_lower_limit_species(1) = 'h1'
    xa_central_lower_limit(1) = 0.0000000001
-
+   
    ! Atmosphere
    atm_option = 'table'
    atm_table = 'photosphere'
