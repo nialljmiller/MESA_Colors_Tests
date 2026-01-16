@@ -84,7 +84,6 @@
       ! ========================================
       ! NUMERICAL CONTROLS
       ! ========================================
-      varcontrol_target = 1d-3
       mesh_delta_coeff = 1.0d0
 
       ! Allow thermal pulses to proceed
@@ -112,21 +111,23 @@
       Blocker_scaling_factor = 0.5d0
 
 
-      ! ========================================
       ! THERMAL PULSE HANDLING
       ! ========================================
       ! Relax convergence during thermal pulses
-      varcontrol_target = 5d-4  ! Less strict than 1d-3
+      varcontrol_target = 5d-4  ! Less strict than default
 
       ! Allow smaller timesteps during difficult phases
-      min_timestep_limit = 1d-9  ! Was defaulting to 1d-6
+      min_timestep_limit = 1d-12  ! Even smaller for post-AGB
 
-      max_number_retries = 100  ! Default is 40, you hit that limit
+      max_number_retries = 200  ! Increase from 100
 
-      ! Solver tolerances
-      tol_max_residual3 = 1d-3  ! Relax from default
+      ! Solver tolerances - set BASE parameter
+      tol_max_residual = 1d-3   ! THIS is what matters
+      tol_max_residual3 = 1d-3
       tol_max_residual1 = 1d-3
-
+      
+      ! Also relax correction norm
+      tol_correction_norm = 1d-3
 
 
 
