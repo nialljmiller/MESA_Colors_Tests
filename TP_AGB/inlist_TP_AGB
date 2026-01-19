@@ -92,10 +92,13 @@
    ! STOPPING CONDITIONS
    ! =========================================================================
    
-   ! Run through several thermal pulses
-   ! Typical interpulse period for 2 Msun is ~50,000-100,000 years
-   ! Run for ~500,000 years to capture 5-10 pulses
-   max_age = 5d5   ! 500,000 years from start of TP-AGB
+   ! FIXED: Dramatically increased to allow thermal pulses to develop
+   ! Typical time to first thermal pulse can be 50-150 Myr after He exhaustion
+   ! Then interpulse period for 2 Msun is ~50,000-100,000 years
+   max_age = 2d8   ! 200 million years - ensures pulses start and we see several
+   
+   ! OLD (too short):
+   ! max_age = 5d5   ! 500,000 years from start of TP-AGB
    
    ! Safety limits
    max_model_number = 100000

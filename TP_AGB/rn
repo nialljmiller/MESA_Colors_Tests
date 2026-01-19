@@ -12,7 +12,7 @@ echo 'Stage 1: Evolving 2 Msun from pre-MS to TP-AGB'
 echo '==================================================='
 echo ''
 
-do_one inlist_to_TP_AGB_header pre_TP.mod LOGS_to_TP
+#do_one inlist_to_TP_AGB_header pre_TP.mod LOGS_to_TP
 
 echo ''
 echo '==================================================='

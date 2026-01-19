@@ -27,3 +27,112 @@
       solver_calls_made:            2
       solver_calls_failed:            0
       solver_iterations:           10
+    - inlist: inlist_to_TP_AGB_header
+      runtime_minutes:  31.51
+      model_number:         8316
+      star_age:     1.1486757774042406E+09
+      num_retries:           34
+      log_rel_run_E_err:        -7.0157432444245629
+      steps:         8326
+      retries:           35
+      redos:            0
+      solver_calls_made:         8361
+      solver_calls_failed:           35
+      solver_iterations:        41721
+    - inlist: inlist_TP_AGB_header
+      runtime_minutes:   0.02
+      model_number:            2
+      star_age:     5.0000000000000000E+05
+      num_retries:            0
+      log_rel_run_E_err:        -7.0172095259495189
+      steps:            2
+      retries:            0
+      redos:            0
+      solver_calls_made:            2
+      solver_calls_failed:            0
+      solver_iterations:           10
+    - inlist: inlist_TP_AGB_header
+      runtime_minutes:   0.01
+      model_number:            2
+      star_age:     5.0000000000000000E+05
+      num_retries:            0
+      log_rel_run_E_err:        -7.0172095259495189
+      steps:            2
+      retries:            0
+      redos:            0
+      solver_calls_made:            2
+      solver_calls_failed:            0
+      solver_iterations:           10
+    - inlist: inlist_TP_AGB_header
+      runtime_minutes:   0.01
+      model_number:            2
+      star_age:     5.0000000000000000E+05
+      num_retries:            0
+      log_rel_run_E_err:        -7.0172095259495189
+      steps:            2
+      retries:            0
+      redos:            0
+      solver_calls_made:            2
+      solver_calls_failed:            0
+      solver_iterations:           10
+    - inlist: inlist_TP_AGB_header
+      runtime_minutes:   0.01
+      model_number:            2
+      star_age:     5.0000000000000000E+05
+      num_retries:            0
+      log_rel_run_E_err:        -7.0172095259495189
+      steps:            2
+      retries:            0
+      redos:            0
+      solver_calls_made:            2
+      solver_calls_failed:            0
+      solver_iterations:           10
+    - inlist: inlist_TP_AGB_header
+      runtime_minutes:   0.01
+      model_number:            2
+      star_age:     5.0000000000000000E+05
+      num_retries:            0
+      log_rel_run_E_err:        -7.0172095259495189
+      steps:            2
+      retries:            0
+      redos:            0
+      solver_calls_made:            2
+      solver_calls_failed:            0
+      solver_iterations:           10
+    - inlist: inlist_TP_AGB_header
+      runtime_minutes:   0.01
+      model_number:            2
+      star_age:     5.0000000000000000E+05
+      num_retries:            0
+      log_rel_run_E_err:        -7.0172095259495189
+      steps:            2
+      retries:            0
+      redos:            0
+      solver_calls_made:            2
+      solver_calls_failed:            0
+      solver_iterations:           10
+    - inlist: inlist_TP_AGB_header
+      runtime_minutes:   0.01
+      model_number:            2
+      star_age:     5.0000000000000000E+05
+      num_retries:            0
+      log_rel_run_E_err:        -7.0172095259495189
+      steps:            2
+      retries:            0
+      redos:            0
+      solver_calls_made:            2
+      solver_calls_failed:            0
+      solver_iterations:           10
+    - inlist: inlist_TP_AGB_header
+      runtime_minutes: 246.77
+      model_number:         8831
+      star_age:     2.9384701889100969E+07
+      num_retries:          135
+      log_rel_run_E_err:        -7.2631301509478119
+      steps:         8831
+      retries:          135
+      redos:            0
+      solver_calls_made:         8966
+      solver_calls_failed:          135
+      solver_iterations:        47464
+    - inlist: inlist_TP_AGB_header

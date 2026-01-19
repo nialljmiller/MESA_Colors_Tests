@@ -71,13 +71,13 @@
    ! STOPPING CONDITIONS
    ! =========================================================================
    
-   ! Stop when core He is exhausted and we're on the early AGB
-   ! This occurs when central He drops below threshold
-   xa_central_lower_limit_species(1) = 'he4'
-   xa_central_lower_limit(1) = 1d-4
+   ! FIXED: Stop when He core mass reaches TP-AGB value
+   ! For 2 Msun, He core grows to ~0.46-0.48 Msun by TP-AGB
+   he_core_mass_limit = 0.48d0
    
-   ! Alternative: stop based on He core mass reaching AGB values
-   ! he_core_mass_limit = 0.55d0
+   ! OLD (too early): 
+   ! xa_central_lower_limit_species(1) = 'he4'
+   ! xa_central_lower_limit(1) = 1d-4
 
    ! Safety limits
    max_age = 2d9               ! 2 Gyr safety limit
