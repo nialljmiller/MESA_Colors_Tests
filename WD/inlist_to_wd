@@ -63,13 +63,9 @@
       ! ========================================
       ! STOPPING CONDITION
       ! ========================================
-      ! Stop when star has cooled to WD cooling track
-      ! Teff ~ 30,000 K and high log_g indicates WD
-      log_L_lower_limit = -1.5d0  ! Stop at L ~ 0.03 Lsun
-
-      ! Backup stopping conditions
-      max_age = 15d9             ! 15 Gyr max
-      max_model_number = 500000   ! Safety limit
+      log_L_lower_limit = -1.5d0
+      max_age = 15d9
+      max_model_number = 500000
 
       ! ========================================
       ! OUTPUT CONTROL
@@ -77,24 +73,33 @@
       history_interval = 5
       profile_interval = 100
       terminal_interval = 50
-
       photo_interval = 500
       photo_digits = 6
 
       ! ========================================
       ! NUMERICAL CONTROLS
       ! ========================================
+      use_gold2_tolerances = .true.
+      okay_to_reduce_gradT_excess = .true.
+      
+      ! Override specific tolerances for post-AGB
+      tol_max_residual1 = 1d-4
+      tol_max_residual2 = 1d-4
+      tol_max_residual3 = 1d-4
+      
       mesh_delta_coeff = 1.0d0
-
-      ! Allow thermal pulses to proceed
-      max_timestep_factor = 1.05d0
+      max_timestep_factor = 1.02
+      
+      ! CRITICAL: Allow tiny timesteps
+      min_timestep_limit = 0
+      
+      max_number_retries = 1000
 
       ! ========================================
       ! MIXING AND CONVECTION
       ! ========================================
       mixing_length_alpha = 1.82d0
 
-      ! Overshooting
       overshoot_scheme(1) = 'exponential'
       overshoot_zone_type(1) = 'burn_H'
       overshoot_zone_loc(1) = 'core'
@@ -103,44 +108,15 @@
       overshoot_f0(1) = 0.004d0
 
       ! ========================================
-      ! MASS LOSS - Essential for AGB -> WD
+      ! MASS LOSS
       ! ========================================
       cool_wind_RGB_scheme = 'Reimers'
       Reimers_scaling_factor = 0.5d0
       cool_wind_AGB_scheme = 'Blocker'
       Blocker_scaling_factor = 0.5d0
 
-
-      ! THERMAL PULSE HANDLING
-      ! ========================================
-      ! Relax convergence during thermal pulses
-      varcontrol_target = 5d-4  ! Less strict than default
-
-      ! Allow smaller timesteps during difficult phases
-      min_timestep_limit = 1d-12  ! Even smaller for post-AGB
-
-      max_number_retries = 200  ! Increase from 100
-
-      ! Solver tolerances - set BASE parameter
-      tol_max_residual2 = 1d-3
-      tol_max_residual3 = 1d-3
-      tol_max_residual1 = 1d-3
-      
-      ! Also relax correction norm
-      tol_correction_norm = 1d-3
-
-
-      ! Use pre-configured relaxed tolerances
-      use_gold2_tolerances = .true.
-
-      ! Keep your existing max_number_retries
-      max_number_retries = 500  ! Increase from 200
-
-      ! Allow MESA to push through difficult phases
-      okay_to_reduce_gradT_excess = .true.
-
-
 /
+
 
 
 &pgstar
