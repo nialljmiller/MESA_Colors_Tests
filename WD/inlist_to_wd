@@ -130,6 +130,15 @@
       tol_correction_norm = 1d-3
 
 
+      ! Use pre-configured relaxed tolerances
+      use_gold2_tolerances = .true.
+
+      ! Keep your existing max_number_retries
+      max_number_retries = 500  ! Increase from 200
+
+      ! Allow MESA to push through difficult phases
+      okay_to_reduce_gradT_excess = .true.
+
 
 /
 
