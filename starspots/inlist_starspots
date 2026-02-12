@@ -51,7 +51,7 @@
    atm_table = 'photosphere'
 
    ! Output
-   log_directory = 'LOGS_M1.1_f0.8'
+   log_directory = 'LOGS'
    history_interval = 1
    terminal_interval = 100
    photo_interval = 500
@@ -75,4 +75,7 @@
    mag_system = 'AB'
    colors_results_directory = 'SED'
    make_csv = .true.
+   colors_per_iteration = .true.  
+   sed_per_model = .false.
+
 / ! end of colors namelist

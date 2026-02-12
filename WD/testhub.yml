@@ -102,3 +102,5 @@
       solver_calls_failed:          155
       solver_iterations:        90781
     - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
