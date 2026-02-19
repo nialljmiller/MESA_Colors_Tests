@@ -136,3 +136,4 @@
       solver_calls_failed:          135
       solver_iterations:        47464
     - inlist: inlist_TP_AGB_header
+    - inlist: inlist_TP_AGB_header

@@ -100,3 +100,5 @@
       solver_calls_made:          343
       solver_calls_failed:            1
       solver_iterations:         2362
+    - inlist: inlist_start_header
+    - inlist: inlist_start_header
