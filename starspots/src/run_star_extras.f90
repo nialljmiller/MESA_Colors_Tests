@@ -48,9 +48,9 @@ subroutine extras_startup(id, restart, ierr)
     ! Set up per-iteration colors hook HERE - after all init is complete
     if (s% colors_handle > 0) then
         call colors_ptr(s% colors_handle, cs, ierr)
-        write(*,*) 'DEBUG: colors_per_iteration =', cs% colors_per_iteration
+        write(*,*) 'DEBUG: colors_per_newton_step =', cs% colors_per_newton_step
         write(*,*) 'DEBUG: use_colors =', cs% use_colors
-        if (ierr == 0 .and. cs% colors_per_iteration .and. cs% use_colors) then
+        if (ierr == 0 .and. cs% colors_per_newton_step .and. cs% use_colors) then
             s% use_other_solver_monitor = .true.
             s% other_solver_monitor => colors_solver_monitor
             write(*,*) 'Colors: per-iteration output enabled'

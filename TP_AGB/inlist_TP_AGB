@@ -83,6 +83,12 @@
    make_csv = .true.
    colors_results_directory = 'SED'
 
+   !Save SED per time step
+   sed_per_model = .true.
+
+   !run colors per newton iter
+   colors_per_newton_step = .true.
+
 / ! end of colors namelist
 
 

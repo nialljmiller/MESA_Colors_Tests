@@ -75,4 +75,5 @@
    mag_system = 'AB'
    colors_results_directory = 'SED'
    make_csv = .true.
+   sed_per_model = .true.
 / ! end of colors namelist

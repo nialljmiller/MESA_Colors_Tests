@@ -45,6 +45,11 @@ def create_inlist(mass, fspot):
         f"\\g<1>{logdir}\\g<2>",
         content
     )
+    content = re.sub(
+        r"(colors_results_directory\s*=\s*')[^']*(')",
+        f"\\g<1>{logdir}/SED\\g<2>",
+        content
+    )
     
     with open(INLIST_ACTIVE, 'w') as f:
         f.write(content)
@@ -96,8 +101,9 @@ def main():
             
             logdir = create_inlist(mass, fspot)
             
-            # Create output directory
+            # Create output directories
             os.makedirs(os.path.join(SCRIPT_DIR, logdir), exist_ok=True)
+            os.makedirs(os.path.join(SCRIPT_DIR, logdir, "SED"), exist_ok=True)
             
             # Only recompile on first run
             success = run_mesa(recompile=first_run)

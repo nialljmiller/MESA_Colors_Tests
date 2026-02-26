@@ -53,3 +53,70 @@ __pycache__/
 *.swp
 *.swo
 .DS_Store
+
+
+# ----------------------------
+# MESA / build products
+# ----------------------------
+
+# Common build directories
+**/build/
+**/build/**
+
+# Compiled executables and dependency files seen in MESA test builds
+**/bin/
+**/bin/**
+**/depend
+**/depend/**
+**/star
+**/star.exe
+**/*.o
+**/*.obj
+**/*.mod
+**/*.a
+**/*.so
+**/*.dylib
+**/*.dll
+
+# Fortran module/dependency sidecars (varies by toolchain)
+**/*.smod
+**/*.mod0
+**/*.d
+**/*.dep
+
+# Make/build scratch
+**/*.log
+**/*.out
+**/*.err
+
+# ----------------------------
+# Generated run output / data products (tune as you like)
+# ----------------------------
+
+# Many MESA runs generate these in test dirs
+**/photos/
+**/photos/**
+**/LOGS/
+**/LOGS/**
+**/logs/
+**/logs/**
+**/plots/
+**/plots/**
+**/png/
+**/png/**
+**/*.png
+**/*.pdf
+
+# If you generate grids / dumps / checkpoints
+**/profiles/
+**/profiles/**
+**/history.data
+**/profiles.index
+**/restart/
+**/restart/**
+**/checkpoints/
+**/checkpoints/**
+
+# Python caches
+**/__pycache__/
+**/*.pyc

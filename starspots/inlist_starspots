@@ -51,7 +51,7 @@
    atm_table = 'photosphere'
 
    ! Output
-   log_directory = 'LOGS'
+   log_directory = 'LOGS_M1.1_f0.8'
    history_interval = 1
    terminal_interval = 100
    photo_interval = 500
@@ -73,9 +73,7 @@
    instrument = '/data/colors_data/filters/LSST/LSST'
    distance = 3.0857d19
    mag_system = 'AB'
-   colors_results_directory = 'SED'
+   colors_results_directory = 'LOGS_M1.1_f0.8/SED'
    make_csv = .true.
-   colors_per_iteration = .true.  
-   sed_per_model = .false.
-
+   sed_per_model = .true.
 / ! end of colors namelist
