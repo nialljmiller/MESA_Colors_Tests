@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
 
-function check_okay {
-	if [ $? -ne 0 ]
-	then
-		echo
-		echo "FAILED"
-		echo
-		exit 1
-	fi
-}
+# Compile - standard MESA test_suite pattern
 
-cd make; make; check_okay
+# Link to standard test_suite make directory
+if [ ! -r make/makefile ]; then
+    if [ -d make ]; then
+        rm -rf make
+    fi
+    mkdir make
+    cd make
+    ln -s ${MESA_DIR}/star/test_suite/make/makefile .
+    cd ..
+fi
+
+# Build
+cd make
+make -j
+cd ..

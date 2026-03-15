@@ -3,7 +3,7 @@
    history_columns_file = 'history_master.list'
    profile_columns_file = 'profile_master.list'
 
-   pre_ms_relax_num_steps = 1000
+   pre_ms_relax_num_steps = 100
    create_pre_main_sequence_model = .true.
 
    change_net = .true.
@@ -31,7 +31,7 @@
 /
 
 &controls
-   initial_mass = 1.1
+   initial_mass = 5.1
    
    ! Starspots
    do_starspots = .true.
@@ -69,11 +69,11 @@
 
 &colors
    use_colors = .true.
-   stellar_atm = '/data/colors_data/stellar_models/Kurucz2003all/'
-   instrument = '/data/colors_data/filters/LSST/LSST'
+   stellar_atm = '/home/njm/SED_Tools/data/stellar_models/bt-settl/'
+   instrument = '/home/njm/SED_Tools/data/filters/LSST/LSST'
    distance = 3.0857d19
    mag_system = 'AB'
    colors_results_directory = 'LOGS_M1.1_f0.8/SED'
    make_csv = .true.
-   sed_per_model = .true.
+   sed_per_model = .false.
 / ! end of colors namelist

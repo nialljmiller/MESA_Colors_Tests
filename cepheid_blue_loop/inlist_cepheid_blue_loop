@@ -103,10 +103,10 @@
    use_colors = .true.
 
    ! Atmosphere grid
-   stellar_atm = '/data/colors_data/stellar_models/Kurucz2003all/'
+   stellar_atm = '/home/njm/SED_Tools/data/stellar_models/bt-settl/'
 
    ! Filter set — LSST for survey-era demonstration
-   instrument = '/data/colors_data/filters/LSST/LSST'
+   instrument = '/home/njm/SED_Tools/data/filters/LSST/LSST'
 
    ! Distance: 10 pc for absolute magnitudes
    distance = 3.0857d19
