@@ -70,8 +70,8 @@
    ! Coverage: Teff 3500-50000 K, log g -1 to 5, [M/H] -5 to +1
    ! AGB stars: Teff ~ 2500-4000 K, log g ~ -0.5 to 1
    ! Note: coolest AGB phases may extrapolate slightly
-   stellar_atm = '/data/colors_data/stellar_models/Kurucz2003all/'
-   
+   !stellar_atm = '/data/colors_data/stellar_models/Kurucz2003all/'
+   stellar_atm = '/home/njm/SED_Tools/data/stellar_models/bt-settl/' 
    ! 10 pc distance for absolute magnitudes
    distance = 3.0857d19
    
