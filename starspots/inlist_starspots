@@ -3,7 +3,7 @@
    history_columns_file = 'history_master.list'
    profile_columns_file = 'profile_master.list'
 
-   pre_ms_relax_num_steps = 100
+   pre_ms_relax_num_steps = 1000
    create_pre_main_sequence_model = .true.
 
    change_net = .true.
@@ -31,11 +31,11 @@
 /
 
 &controls
-   initial_mass = 5.1
+   initial_mass = 0.3
    
    ! Starspots
    do_starspots = .true.
-   fspot = 0.8d0
+   fspot = 0.2d0
    xspot = 0.85d0
    
    ! MLT prescription - CRITICAL FOR FIGURE 15
@@ -51,7 +51,7 @@
    atm_table = 'photosphere'
 
    ! Output
-   log_directory = 'LOGS_M1.1_f0.8'
+   log_directory = 'LOGS_M0.3_f0.2'
    history_interval = 1
    terminal_interval = 100
    photo_interval = 500
@@ -73,7 +73,7 @@
    instrument = '/home/njm/SED_Tools/data/filters/LSST/LSST'
    distance = 3.0857d19
    mag_system = 'AB'
-   colors_results_directory = 'LOGS_M1.1_f0.8/SED'
+   colors_results_directory = 'LOGS_M0.3_f0.2/SED'
    make_csv = .true.
-   sed_per_model = .false.
+   sed_per_model = .true.
 / ! end of colors namelist

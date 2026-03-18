@@ -73,7 +73,7 @@
    instrument = '/home/njm/SED_Tools/data/filters/LSST/LSST'
    distance = 3.0857d19
    mag_system = 'AB'
-   colors_results_directory = 'SED'
+   colors_results_directory = 'LOGS_PLACEHOLDER/SED'
    make_csv = .true.
    sed_per_model = .true.
 / ! end of colors namelist

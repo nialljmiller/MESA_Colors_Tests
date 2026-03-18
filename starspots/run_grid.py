@@ -45,11 +45,12 @@ def create_inlist(mass, fspot):
         f"\\g<1>{logdir}\\g<2>",
         content
     )
-    content = re.sub(
-        r"(colors_results_directory\s*=\s*')[^']*(')",
-        f"\\g<1>{logdir}/SED\\g<2>",
-        content
-    )
+    # Use a literal placeholder — unambiguous, fails loudly if template changes
+    if 'LOGS_PLACEHOLDER' not in content:
+        raise RuntimeError(
+            "inlist_starspots_template must contain colors_results_directory = 'LOGS_PLACEHOLDER/SED'"
+        )
+    content = content.replace('LOGS_PLACEHOLDER', logdir)
     
     with open(INLIST_ACTIVE, 'w') as f:
         f.write(content)
