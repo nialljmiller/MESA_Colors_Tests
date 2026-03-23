@@ -21,9 +21,7 @@ contains
         call star_ptr(id, s, ierr)
         if (ierr /= 0) return
 
-        ! Set the starspot gradr factor routine (if you need it)
-        s% other_gradr_factor => starspot_gradr_factor
-        
+        ! Starspots are handled by MESA's built-in do_starspots = .true.
         ! DO NOT set the solver monitor hook here - it will be overwritten!
         
     end subroutine extras_controls
@@ -182,10 +180,10 @@ end subroutine extras_startup
 
         ! Record spot parameters in history
         names(1) = 'fspot'
-        vals(1) = s% x_ctrl(1)
+        vals(1) = s% fspot
 
         names(2) = 'xspot'
-        vals(2) = s% x_ctrl(2)
+        vals(2) = s% xspot
 
     end subroutine data_for_extra_history_columns
 
