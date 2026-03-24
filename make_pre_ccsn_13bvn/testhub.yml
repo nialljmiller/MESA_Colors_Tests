@@ -72,3 +72,4 @@
       solver_calls_made:          999
       solver_calls_failed:          173
       solver_iterations:         9864
+    - inlist: inlist_to_cc_header
