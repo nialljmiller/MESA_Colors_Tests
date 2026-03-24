@@ -65,7 +65,7 @@ _mesa = os.environ.get("MESA_DIR", "")
 
 SOURCE_INSTRUMENT = os.path.join(_mesa, "data/colors_data/filters/Generic/Johnson")
 SOURCE_STELLAR_ATM = os.path.join(
-    _mesa, "data/colors_data/stellar_models/Kurucz2003all"
+    _mesa, "data/colors_data/stellar_models/13bvn"
 )
 SOURCE_VEGA_SED = os.path.join(_mesa, "data/colors_data/stellar_models/vega_flam.csv")
 
@@ -613,7 +613,7 @@ def run_all_proof_plots(test_name, output_dir, success):
 # =============================================================================
 
 _DEFAULT_INSTRUMENT = "data/colors_data/filters/Generic/Johnson"
-_DEFAULT_STELLAR_ATM = "data/colors_data/stellar_models/Kurucz2003all/"
+_DEFAULT_STELLAR_ATM = "data/colors_data/stellar_models/13bvn/"
 _DEFAULT_VEGA_SED = "data/colors_data/stellar_models/vega_flam.csv"
 
 
@@ -636,7 +636,7 @@ def test01_input_mesa_dir_relative():
     return _run_test(
         "INPUT: MESA_DIR-relative",
         "data/colors_data/filters/Generic/Johnson",
-        "data/colors_data/stellar_models/Kurucz2003all/",
+        "data/colors_data/stellar_models/13bvn/",
         "data/colors_data/stellar_models/vega_flam.csv",
         "test_results/test01_output",
     )
@@ -645,12 +645,12 @@ def test01_input_mesa_dir_relative():
 def test02_input_cwd_dotslash():
     stage = "./test_staged/test02_input_cwd_dotslash"
     copy_data(SOURCE_INSTRUMENT, f"{stage}/filters/Generic/Johnson")
-    copy_data(SOURCE_STELLAR_ATM, f"{stage}/stellar_models/Kurucz2003all")
+    copy_data(SOURCE_STELLAR_ATM, f"{stage}/stellar_models/13bvn")
     copy_data(SOURCE_VEGA_SED, f"{stage}/stellar_models/vega_flam.csv")
     return _run_test(
         "INPUT: CWD-relative (./)",
         f"{stage}/filters/Generic/Johnson",
-        f"{stage}/stellar_models/Kurucz2003all",
+        f"{stage}/stellar_models/13bvn",
         f"{stage}/stellar_models/vega_flam.csv",
         "test_results/test02_output",
     )
@@ -659,12 +659,12 @@ def test02_input_cwd_dotslash():
 def test03_input_cwd_dotdotslash():
     stage = "../test_staged/test03_input_cwd_dotdotslash"
     copy_data(SOURCE_INSTRUMENT, f"{stage}/filters/Generic/Johnson")
-    copy_data(SOURCE_STELLAR_ATM, f"{stage}/stellar_models/Kurucz2003all")
+    copy_data(SOURCE_STELLAR_ATM, f"{stage}/stellar_models/13bvn")
     copy_data(SOURCE_VEGA_SED, f"{stage}/stellar_models/vega_flam.csv")
     return _run_test(
         "INPUT: CWD-relative (../)",
         f"{stage}/filters/Generic/Johnson",
-        f"{stage}/stellar_models/Kurucz2003all",
+        f"{stage}/stellar_models/13bvn",
         f"{stage}/stellar_models/vega_flam.csv",
         "test_results/test03_output",
     )
@@ -673,12 +673,12 @@ def test03_input_cwd_dotdotslash():
 def test04_input_absolute():
     stage = os.path.join(CWD, "test_staged/test04_input_absolute")
     copy_data(SOURCE_INSTRUMENT, os.path.join(stage, "filters/Generic/Johnson"))
-    copy_data(SOURCE_STELLAR_ATM, os.path.join(stage, "stellar_models/Kurucz2003all"))
+    copy_data(SOURCE_STELLAR_ATM, os.path.join(stage, "stellar_models/13bvn"))
     copy_data(SOURCE_VEGA_SED, os.path.join(stage, "stellar_models/vega_flam.csv"))
     return _run_test(
         "INPUT: Absolute path",
         os.path.join(stage, "filters/Generic/Johnson"),
-        os.path.join(stage, "stellar_models/Kurucz2003all"),
+        os.path.join(stage, "stellar_models/13bvn"),
         os.path.join(stage, "stellar_models/vega_flam.csv"),
         "test_results/test04_output",
     )
@@ -688,7 +688,7 @@ def test05_input_slash_mesa_fallback():
     return _run_test(
         "INPUT: /-prefixed MESA_DIR fallback",
         "/data/colors_data/filters/Generic/Johnson",
-        "/data/colors_data/stellar_models/Kurucz2003all/",
+        "/data/colors_data/stellar_models/13bvn/",
         "/data/colors_data/stellar_models/vega_flam.csv",
         "test_results/test05_output",
     )

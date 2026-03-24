@@ -172,3 +172,16 @@
       solver_iterations:           29
     - inlist: inlist_to_post_si_burn_header
     - inlist: inlist_to_cc_header
+    - inlist: inlist_to_cc_header
+    - inlist: inlist_to_cc_header
+      runtime_minutes:  19.28
+      model_number:         5121
+      star_age:     1.7935936398953080E+07
+      num_retries:          174
+      log_rel_run_E_err:        -4.3906668254186849
+      steps:          826
+      retries:          173
+      redos:            0
+      solver_calls_made:          999
+      solver_calls_failed:          173
+      solver_iterations:         9864

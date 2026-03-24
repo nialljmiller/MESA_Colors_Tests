@@ -82,7 +82,7 @@
       use_colors = .true.
 
       instrument = 'data/colors_data/filters/LSST/LSST'
-      stellar_atm = 'data/colors_data/stellar_models/Kurucz2003all/'
+      stellar_atm = 'data/colors_data/stellar_models/13bvn/'
 
       ! Distance to NGC 5806 (~22.5 Mpc) for apparent magnitudes
       distance = 6.9435d25

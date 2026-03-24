@@ -54,7 +54,7 @@
       use_colors = .true.
 
       instrument = 'data/colors_data/filters/LSST/LSST'
-      stellar_atm = 'data/colors_data/stellar_models/Kurucz2003all/'
+      stellar_atm = 'data/colors_data/stellar_models/13bvn/'
 
       distance = 6.9435d25
 
