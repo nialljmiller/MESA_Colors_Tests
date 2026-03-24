@@ -5,7 +5,7 @@
    extra_star_job_inlist_name(2) = 'inlist_massive_defaults'
 
    read_extra_star_job_inlist(4) = .true.
-   extra_star_job_inlist_name(4) = 'inlist_to_cc'
+   extra_star_job_inlist_name(4) = 'inlist_to_post_si_burn'
 
 / ! end of star_job namelist
 
@@ -33,18 +33,19 @@
    extra_controls_inlist_name(1) = 'inlist_massive_defaults'
 
    read_extra_controls_inlist(4) = .true.
-   extra_controls_inlist_name(4) = 'inlist_to_cc'
+   extra_controls_inlist_name(4) = 'inlist_to_post_si_burn'
 
 / ! end of controls namelist
 
 
 &pgstar
 
+
    read_extra_pgstar_inlist(2) = .true.
    extra_pgstar_inlist_name(2) = 'inlist_pgstar'
 
    read_extra_pgstar_inlist(3) = .true.
-   extra_pgstar_inlist_name(3) = 'inlist_to_cc'
+   extra_pgstar_inlist_name(3) = 'inlist_to_post_si_burn'
 
 / ! end of pgstar namelist
 
@@ -61,7 +62,7 @@
 
       vega_sed = '/colors/data/stellar_models/vega_flam.csv'
 
-      colors_results_directory = 'SED_cc'
+      colors_results_directory = 'SED_presn'
       make_csv = .true.
 
 / ! end of colors namelist

@@ -2,7 +2,7 @@
 !
             44 -- model for mesa/star, cell boundary velocities (v), mlt convection velocity (mlt_vc). cgs units. lnd=ln(density), lnT=ln(temperature), lnR=ln(radius), L=luminosity, dq=fraction of total mstar in cell; remaining cols are mass fractions.
 
-                  version_number   '48b8e84'
+                  version_number   '027d9db'
                           M/Msun      1.2000000000000000D+01
                     model_number                            1102
                         star_age      1.7885109945762280D+07
