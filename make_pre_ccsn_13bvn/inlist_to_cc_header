@@ -52,14 +52,14 @@
 
       use_colors = .true.
 
-      instrument = '/colors/data/filters/LSST/LSST'
-      stellar_atm = '/colors/data/stellar_models/kurucz2003/'
+      instrument = 'data/colors_data/filters/LSST/LSST'
+      stellar_atm = 'data/colors_data/stellar_models/Kurucz2003all/'
 
       distance = 6.9435d25
 
       mag_system = 'AB'
 
-      vega_sed = '/colors/data/stellar_models/vega_flam.csv'
+      vega_sed = 'data/colors_data/stellar_models/vega_flam.csv'
 
       colors_results_directory = 'SED_cc'
       make_csv = .true.
