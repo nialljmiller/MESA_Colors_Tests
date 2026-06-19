@@ -178,6 +178,6 @@
 
    sed_per_model = .true.
 
-   colors_per_newton_step = .true.
 
 / ! end of colors namelist
+

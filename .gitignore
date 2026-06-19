@@ -120,3 +120,44 @@ __pycache__/
 # Python caches
 **/__pycache__/
 **/*.pyc
+
+# --- MESA generated outputs ---
+**/build/
+**/LOGS/
+**/LOGS*/
+**/photos/
+**/SED/
+**/profiles.index
+**/profile*.data
+**/history.data
+**/*.mod
+**/*.o
+**/*.o.*
+**/star
+
+# --- Large survey / intermediate data products ---
+**/*.parquet
+**/*.fits
+**/*.fit
+**/*.h5
+**/*.hdf5
+**/*.npy
+**/*.npz
+**/gaia_chunks/
+**/gaia_dsc_wd_chunks/
+**/gaia_dsc_wd_chunks_test/
+**/gaia_cmd*.csv
+**/mesa_gaia_track_corrected.csv
+**/mesa_gaia_track_corrected.parquet
+
+# --- Generated figures, but keep plotting code ---
+**/figures/*.pdf
+**/figures/*.png
+**/figures/*.jpg
+**/figures/*.jpeg
+**/figures/*.mp4
+**/figures/figures/
+WD/GAIA_obs/gaia_wd_cmd_mesa_overlay_twopanel_fixed.*
+
+# --- MESA/autosave backup junk ---
+**/*.mangled_*

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+# this provides the definition of do_one (run one part of test)
+# do_one [inlist] [output model] [LOGS directory]
+source "${MESA_DIR}/star/test_suite/test_suite_helpers"
+
+date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S"
+
+# check if can skip building starting WD model
+if [ -n "$MESA_SKIP_OPTIONAL" ]; then
+   cp saved_models/co_wd_settled_0p6M_from_mesa_test_suite.mod wd_start.mod
+else
+   do_one inlist_to_wd wd_start.mod LOGS_progenitor
+   mkdir -p saved_models
+   cp wd_start.mod saved_models/wd_start_from_1Msun_progenitor.mod
+fi
+
+do_one inlist_cool_wd wd_cooled.mod LOGS_wd_cool
+
+date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S"
+
+echo 'finished'

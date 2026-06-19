@@ -1,0 +1,72 @@
+&star_job
+      show_log_description_at_start = .false.
+
+      load_saved_model = .true.
+      load_model_filename = 'wd_start.mod'
+      
+      save_model_when_terminate = .true.
+      save_model_filename = 'wd_cooled.mod'
+
+      history_columns_file = 'history_columns.list'
+
+      set_initial_age = .true.
+      initial_age = 0
+
+      set_initial_model_number = .true.
+      initial_model_number = 0
+
+      set_initial_dt = .true.
+      years_for_initial_dt = 1d2
+
+      pgstar_flag = .false.
+/
+
+&eos
+      use_Skye = .true.
+      use_PC = .false.
+      Skye_solid_mixing_rule = "Ogata"
+/
+
+&kap
+      Zbase = 0.02d0
+      kap_file_prefix = 'gs98'
+      use_Type2_opacities = .true.
+/
+
+&colors
+      use_colors = .true.
+                  stellar_atm = 'data/colors_data/stellar_models/bbody/'
+            instrument = 'data/colors_data/filters/GAIA/GAIA'
+      distance = 3.0857d19
+      mag_system = 'Vega'
+      make_csv = .true.
+/
+
+&controls
+      log_center_temp_lower_limit = 6d0
+
+      energy_eqn_option = 'eps_grav'
+      use_time_centered_eps_grav = .true.
+
+      atm_option = 'table'
+      atm_table = 'WD_tau_25'
+
+      use_gold2_tolerances = .true.
+
+      do_element_diffusion = .true.
+      diffusion_use_full_net = .true.
+
+      mesh_delta_coeff = 0.75
+      MLT_option = 'ML2'
+      mixing_length_alpha = 1.8
+
+      history_interval = 1
+      profile_interval = 50
+      terminal_interval = 20
+      photo_interval = 100
+      photo_digits = 6
+/
+
+&pgstar
+/
+

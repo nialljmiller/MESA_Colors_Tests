@@ -1,29 +1,24 @@
 #!/usr/bin/env bash
 
-# this provides the definition of do_one (run one part of test)
-# do_one [inlist] [output model] [LOGS directory]
 source "${MESA_DIR}/star/test_suite/test_suite_helpers"
 
 date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S"
 
-echo ''
-echo '==================================================='
-echo 'Stage 1: Evolving 1 Msun from pre-MS to WD'
-echo '==================================================='
-echo ''
+if [ -n "$MESA_SKIP_OPTIONAL" ]; then
+   echo "Skipping progenitor stage; using saved 0.6 Msun WD model"
+   mkdir -p saved_models
+   if [ ! -f saved_models/co_wd_settled_0p6M_from_mesa_test_suite.mod ]; then
+      cp "$MESA_DIR/star/test_suite/wd_cool_0.6M/co_wd_settled.mod" saved_models/co_wd_settled_0p6M_from_mesa_test_suite.mod
+   fi
+   cp saved_models/co_wd_settled_0p6M_from_mesa_test_suite.mod wd_start.mod
+else
+   echo "Running full progenitor stage"
+   do_one inlist_to_wd wd_start.mod LOGS_progenitor
+fi
 
-do_one inlist_to_wd wd_start.mod LOGS_progenitor
-
-echo ''
-echo '==================================================='
-echo 'Stage 2: WD Cooling Sequence with MESA Colors'
-echo '==================================================='
-echo ''
-
-do_one inlist_cool_wd wd_cooled.mod LOGS
+echo "Running WD cooling stage"
+do_one inlist_cool_wd wd_cooled.mod LOGS_wd_cool
 
 date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S"
 
-echo ''
-echo 'Finished all stages'
-echo ''
+echo 'finished'
