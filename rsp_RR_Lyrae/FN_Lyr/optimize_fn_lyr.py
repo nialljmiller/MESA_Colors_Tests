@@ -126,10 +126,14 @@ class Param:
 # physical RRab range. The seed is placed INSIDE the measured box -- NOT at the
 # old grid basin (T6700), which was hotter and heavier than FN Lyr actually is.
 PARAMS = [
-    Param("teff",  6470.0, 6570.0, 6520.0),   # measured 6482-6559
-    Param("lum",     40.0,   56.0,   48.0),    # L(puls)->L(evol)
+    Param("teff",  6470.0, 6570.0, 6545.0),   # measured 6482-6559; seed high side
+    Param("lum",     40.0,   56.0,   42.0),    # L(puls)->L(evol); seed LOW: period
+                                               #   at L=48 ran ~12.6% long, and
+                                               #   dP/dL ~ -1.9%/Lsun, so the period
+                                               #   match lives near the L floor.
     Param("alfam",   0.08,    0.30,   0.15),   # free convective lever
-    Param("mass",    0.59,    0.69,   0.62),    # M(puls)=0.595 -> M(evol)=0.69
+    Param("mass",    0.59,    0.69,   0.66),    # M(puls)=0.595 -> M(evol)=0.69;
+                                               #   seed high side, mass shortens P.
 ]
 
 
@@ -388,7 +392,16 @@ def objective(norm, cfg, obs_phase, obs_mag):
         mag_col = "Kepler" if "Kepler" in h.columns else "K"
         nmax = int(np.nanmax(h["rsp_num_periods"]))
         amp_med, amp_range = convergence_range(h, mag_col, nmax)
-        vmax = (np.nanmax(np.abs(h[h["rsp_num_periods"].astype(int) == nmax]["max_abs_v_div_cs"]))
+        # The run terminates the instant it ticks over to cycle nmax, so that
+        # final "cycle" is often a single stray row (degenerate). Use the last
+        # cycle that actually has a real number of points for vmax and period.
+        last_full = nmax
+        for n in range(nmax, max(0, nmax - 15) - 1, -1):
+            if (h["rsp_num_periods"].astype(int) == n).sum() >= 200:
+                last_full = n
+                break
+        m_full = h[h["rsp_num_periods"].astype(int) == last_full]
+        vmax = (np.nanmax(np.abs(m_full["max_abs_v_div_cs"]))
                 if "max_abs_v_div_cs" in h.columns else np.nan)
     except Exception as exc:
         row.update(status=f"read_error:{exc!r}", objective=PENALTY_CRASH,
@@ -397,9 +410,28 @@ def objective(norm, cfg, obs_phase, obs_mag):
         print(f"    READ ERROR {exc!r} -> penalty {PENALTY_CRASH}", flush=True)
         return PENALTY_CRASH
 
-    # Period from the last cycle.
-    m_last = h[h["rsp_num_periods"].astype(int) == nmax]
-    period = float(np.nanmax(m_last["star_age_day"]) - np.nanmin(m_last["star_age_day"]))
+    # Period: read RSP's own per-cycle period column, median over the last ~10
+    # COMPLETE cycles. Do NOT reconstruct from star_age_day span of the final
+    # cycle -- the final cycle is frequently a single row (span = 0 -> period
+    # reads as ~0 -> spurious 100% error). rsp_period_in_days is the period
+    # RSP measures between consecutive R_max and is the correct quantity.
+    if "rsp_period_in_days" in h.columns:
+        cyc_mask = h["rsp_num_periods"].astype(int).between(max(0, last_full - 9), last_full)
+        pvals = pd.to_numeric(h.loc[cyc_mask, "rsp_period_in_days"], errors="coerce")
+        pvals = pvals[(pvals > 0.1) & (pvals < 2.0)]  # sane RR Lyrae range
+        period = float(np.nanmedian(pvals)) if len(pvals) else np.nan
+    else:
+        # Fallback: span of a FULL cycle (not the degenerate final one).
+        period = float(np.nanmax(m_full["star_age_day"]) - np.nanmin(m_full["star_age_day"]))
+
+    if not np.isfinite(period) or period <= 0:
+        # Period unreadable -> treat as a failed run rather than 100% error.
+        row.update(status="no_period", objective=PENALTY_UNCONV_BASE,
+                   runtime_s=round(time.time() - t0, 1))
+        log_row(row)
+        print("    NO VALID PERIOD -> penalty", flush=True)
+        return PENALTY_UNCONV_BASE
+
     period_err = abs(period - OBS_PERIOD) / OBS_PERIOD
 
     row.update(period=round(period, 6), period_err_pct=round(100 * period_err, 4),

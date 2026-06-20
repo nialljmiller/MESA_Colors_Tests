@@ -366,6 +366,483 @@ def plot_cmd_with_seds(history, sed_dir, output_dir,
     plt.close()
 
 
+# ---------------------------------------------------------------------------
+# STATIC FIGURE  –  combined TP-AGB time-series diagnostic
+# ---------------------------------------------------------------------------
+
+def plot_tpagb_timeseries(history, output_dir,
+                          basename='fig_tpagb_timeseries',
+                          xlim=None,
+                          bands=('B', 'V', 'R', 'I'),
+                          colour_pairs=(('B', 'V'), ('V', 'I'), ('V', 'J'), ('V', 'M')),
+                          include_numerics=False):
+    """
+    Combined TP-AGB time-series figure.
+
+    This replaces the separate lightcurve and diagnostics plots.
+
+    Panels are selected from the history columns:
+      - nuclear luminosities
+      - synthetic magnitudes
+      - colour indices
+      - bolometric magnitude / log_L comparison
+      - Teff
+      - radius / gravity
+      - core masses
+      - surface C/O, if present and non-boring
+      - mass loss / stellar mass, if present and non-boring
+      - optional numerical diagnostics
+
+    All panels share the same time axis.
+    There are no vertical gaps between panels.
+    Thermal-pulse peaks are marked consistently on every panel.
+    """
+
+    from matplotlib.lines import Line2D
+
+    age = history['star_age']
+    time_kyr = age / 1e3
+
+    pulse_idx, pulse_times = identify_thermal_pulses(history)
+    pulse_idx = np.asarray(pulse_idx, dtype=int)
+    pulse_times_kyr = np.asarray(pulse_times, dtype=float) / 1e3
+
+    if xlim is None:
+        view_mask = np.isfinite(time_kyr)
+    else:
+        view_mask = (
+            np.isfinite(time_kyr)
+            & (time_kyr >= xlim[0])
+            & (time_kyr <= xlim[1])
+        )
+
+    def has_col(name):
+        try:
+            return name in history
+        except Exception:
+            try:
+                _ = history[name]
+                return True
+            except Exception:
+                return False
+
+    def get_col(name):
+        if not has_col(name):
+            return None
+        return np.asarray(history[name], dtype=float)
+
+    def finite_in_view(y):
+        y = np.asarray(y, dtype=float)
+        return view_mask & np.isfinite(y)
+
+    def is_interesting(y, min_points=10, rel_tol=1.0e-3, abs_tol=1.0e-8):
+        """
+        Decide whether a column changes enough to deserve a panel.
+        This avoids plotting constants, zeros, and numerical bookkeeping junk.
+        """
+        y = np.asarray(y, dtype=float)
+        m = finite_in_view(y)
+
+        if np.sum(m) < min_points:
+            return False
+
+        yy = y[m]
+        lo, hi = np.nanpercentile(yy, [1, 99])
+        span = hi - lo
+
+        scale = max(1.0, abs(np.nanmedian(yy)))
+        threshold = max(abs_tol, rel_tol * scale)
+
+        return np.isfinite(span) and span > threshold
+
+    def band_color(band):
+        try:
+            return JOHNSON_FILTERS.get(band, {}).get('color', None)
+        except Exception:
+            return None
+
+    mag_cols = find_magnitude_columns(history, 'johnson')
+
+    def get_mag_band(band):
+        if band in mag_cols:
+            return get_col(mag_cols[band])
+        if has_col(band):
+            return get_col(band)
+        return None
+
+    def add_pulse_markers(ax):
+        for pt in pulse_times_kyr:
+            if np.isfinite(pt):
+                ax.axvline(
+                    pt,
+                    color='0.75',
+                    ls=':',
+                    lw=0.55,
+                    alpha=0.55,
+                    zorder=0,
+                )
+
+    def plot_series(ax, y, label, color=None, ls='-', lw=0.8,
+                    alpha=0.9, mark_peaks=True, zorder=2):
+        y = np.asarray(y, dtype=float)
+        m = np.isfinite(time_kyr) & np.isfinite(y)
+
+        line, = ax.plot(
+            time_kyr[m],
+            y[m],
+            ls=ls,
+            lw=lw,
+            color=color,
+            alpha=alpha,
+            label=label,
+            zorder=zorder,
+        )
+
+        line_color = line.get_color()
+
+        if mark_peaks and pulse_idx.size > 0:
+            p = pulse_idx[(pulse_idx >= 0) & (pulse_idx < len(y))]
+            p = p[np.isfinite(time_kyr[p]) & np.isfinite(y[p])]
+
+            if p.size > 0:
+                ax.plot(
+                    time_kyr[p],
+                    y[p],
+                    'o',
+                    ms=2.5,
+                    color=line_color,
+                    markeredgecolor='k',
+                    markeredgewidth=0.25,
+                    alpha=0.95,
+                    zorder=5,
+                )
+
+        return line
+
+    panel_specs = []
+
+    def add_panel(ylabel, draw_func, height=1.0, invert=False):
+        panel_specs.append({
+            'ylabel': ylabel,
+            'draw': draw_func,
+            'height': height,
+            'invert': invert,
+        })
+
+    # -----------------------------------------------------------------------
+    # Panel 1: nuclear luminosity driver
+    # -----------------------------------------------------------------------
+
+    if has_col('log_LHe'):
+        def draw_nuclear(ax):
+            y_he = get_col('log_LHe')
+            plot_series(ax, y_he, r'$\log L_{\rm He}$',
+                        color='tab:red', lw=0.85, mark_peaks=True)
+
+            if has_col('log_LH'):
+                y_h = get_col('log_LH')
+                if is_interesting(y_h, rel_tol=5.0e-4):
+                    plot_series(ax, y_h, r'$\log L_{\rm H}$',
+                                color='tab:blue', lw=0.65,
+                                alpha=0.75, mark_peaks=False)
+
+            if has_col('log_Lnuc'):
+                y_nuc = get_col('log_Lnuc')
+                if is_interesting(y_nuc, rel_tol=5.0e-4):
+                    plot_series(ax, y_nuc, r'$\log L_{\rm nuc}$',
+                                color='k', lw=0.65,
+                                alpha=0.65, mark_peaks=False)
+
+            ax.legend(loc='lower left', fontsize=6, framealpha=0.9, ncol=1)
+
+        add_panel(r'$\log(L/L_\odot)$', draw_nuclear, height=1.15)
+
+    # -----------------------------------------------------------------------
+    # Panel 2: synthetic optical light curves
+    # -----------------------------------------------------------------------
+
+    available_bands = []
+    for band in bands:
+        mag = get_mag_band(band)
+        if mag is not None and np.sum(finite_in_view(mag)) > 10:
+            available_bands.append(band)
+
+    if available_bands:
+        def draw_magnitudes(ax):
+            for band in available_bands:
+                mag = get_mag_band(band)
+                plot_series(
+                    ax,
+                    mag,
+                    band,
+                    color=band_color(band),
+                    lw=0.75,
+                    alpha=0.9,
+                    mark_peaks=True,
+                )
+
+            ax.legend(loc='upper left', fontsize=6, framealpha=0.9,
+                      ncol=min(len(available_bands), 1))
+
+        add_panel('Magnitude', draw_magnitudes, height=1.25, invert=True)
+
+    # -----------------------------------------------------------------------
+    # Panel 3: colour indices
+    # -----------------------------------------------------------------------
+
+    available_colours = []
+
+    for blue, red in colour_pairs:
+        mag_blue = get_mag_band(blue)
+        mag_red = get_mag_band(red)
+
+        if mag_blue is None or mag_red is None:
+            continue
+
+        colour = mag_blue - mag_red
+
+        if is_interesting(colour, rel_tol=5.0e-4):
+            available_colours.append((blue, red, colour))
+
+    if available_colours:
+        def draw_colours(ax):
+            for blue, red, colour in available_colours:
+                label = f'{blue}-{red}'
+                plot_series(
+                    ax,
+                    colour,
+                    label,
+                    lw=0.75,
+                    alpha=0.9,
+                    mark_peaks=True,
+                )
+
+            ax.legend(loc='upper left', fontsize=6, framealpha=0.9,
+                      ncol=min(len(available_colours), 1))
+
+        add_panel('Colour (mag)', draw_colours, height=0.95)
+
+
+    # -----------------------------------------------------------------------
+    # Panel 5: effective temperature
+    # -----------------------------------------------------------------------
+
+    if has_col('effective_T') or has_col('log_Teff'):
+        def draw_teff(ax):
+            if has_col('effective_T'):
+                teff = get_col('effective_T')
+            else:
+                teff = 10.0 ** get_col('log_Teff')
+
+            plot_series(
+                ax,
+                teff,
+                r'$T_{\rm eff}$',
+                color='k',
+                lw=0.75,
+                mark_peaks=True,
+            )
+
+        add_panel(r'$T_{\rm eff}$ (K)', draw_teff, height=1.0)
+
+    # -----------------------------------------------------------------------
+    # Panel 6: radius and gravity
+    # -----------------------------------------------------------------------
+
+    radius_gravity_cols = []
+
+    if has_col('log_R'):
+        y = get_col('log_R')
+        if is_interesting(y, rel_tol=5.0e-4):
+            radius_gravity_cols.append(('log_R', r'$\log R$', y, 'k', '-'))
+
+    if has_col('log_g'):
+        y = get_col('log_g')
+        if is_interesting(y, rel_tol=5.0e-4):
+            radius_gravity_cols.append(('log_g', r'$\log g$', y, '0.45', '--'))
+
+    if radius_gravity_cols:
+        def draw_radius_gravity(ax):
+            for _, label, y, color, ls in radius_gravity_cols:
+                plot_series(
+                    ax,
+                    y,
+                    label,
+                    color=color,
+                    ls=ls,
+                    lw=0.75,
+                    alpha=0.85,
+                    mark_peaks=True,
+                )
+
+            ax.legend(loc='center left', fontsize=6, framealpha=0.9, ncol=1)
+
+        add_panel(r'$\log R$, $\log g$', draw_radius_gravity, height=0.95)
+
+
+    mass_loss_series = []
+
+    if has_col('log_abs_mdot'):
+        log_abs_mdot = get_col('log_abs_mdot')
+        log_abs_mdot = np.asarray(log_abs_mdot, dtype=float)
+
+        # MESA often uses very negative placeholders when there is no mass loss.
+        log_abs_mdot_clean = log_abs_mdot.copy()
+        log_abs_mdot_clean[log_abs_mdot_clean < -90.0] = np.nan
+
+        if is_interesting(log_abs_mdot_clean, min_points=5, rel_tol=1.0e-3):
+            mass_loss_series.append(
+                (r'$\log|\dot{M}|$', log_abs_mdot_clean, 'tab:brown', '-')
+            )
+
+    if has_col('star_mass'):
+        star_mass = get_col('star_mass')
+        if is_interesting(star_mass, rel_tol=1.0e-5):
+            mass_loss_series.append(
+                (r'$M_\star$', star_mass, 'k', '--')
+            )
+
+    if mass_loss_series:
+        def draw_mass_loss(ax):
+            for label, y, color, ls in mass_loss_series:
+                plot_series(
+                    ax,
+                    y,
+                    label,
+                    color=color,
+                    ls=ls,
+                    lw=0.75,
+                    alpha=0.9,
+                    mark_peaks=True,
+                )
+
+            ax.legend(loc='upper right', fontsize=6, framealpha=0.9)
+
+        add_panel(r'Mass / mass loss', draw_mass_loss, height=0.9)
+
+    # -----------------------------------------------------------------------
+    # Optional numerical diagnostics
+    # -----------------------------------------------------------------------
+
+    if include_numerics:
+        numerical_series = []
+
+        for name, label, color, ls in [
+            ('log_dt', r'$\log \Delta t$', 'k', '-'),
+            ('num_zones', 'zones', 'tab:blue', '-'),
+            ('num_iters', 'iters', 'tab:orange', '-'),
+            ('num_retries', 'retries', 'tab:red', '-'),
+        ]:
+            if has_col(name):
+                y = get_col(name)
+                if is_interesting(y, rel_tol=1.0e-3):
+                    numerical_series.append((label, y, color, ls))
+
+        if numerical_series:
+            def draw_numerics(ax):
+                for label, y, color, ls in numerical_series:
+                    plot_series(
+                        ax,
+                        y,
+                        label,
+                        color=color,
+                        ls=ls,
+                        lw=0.65,
+                        alpha=0.8,
+                        mark_peaks=False,
+                    )
+
+                ax.legend(loc='upper right', fontsize=6, framealpha=0.9,
+                          ncol=min(len(numerical_series), 4))
+
+            add_panel('Numerics', draw_numerics, height=0.8)
+
+    # -----------------------------------------------------------------------
+    # Build figure
+    # -----------------------------------------------------------------------
+
+    if not panel_specs:
+        print("Warning: no useful TP-AGB time-series columns found. Skipping.")
+        return
+
+    n_panels = len(panel_specs)
+    height_ratios = [p['height'] for p in panel_specs]
+
+    fig_height = max(4.0, 0.9 * n_panels + 1.0)
+
+    fig, axes = plt.subplots(
+        n_panels,
+        1,
+        figsize=(APJ_DOUBLE_COL/2, fig_height),
+        sharex=True,
+        gridspec_kw={
+            'hspace': 0.0,
+            'height_ratios': height_ratios,
+        },
+    )
+
+    axes = np.atleast_1d(axes)
+
+    for i, (ax, spec) in enumerate(zip(axes, panel_specs)):
+        add_pulse_markers(ax)
+        spec['draw'](ax)
+
+        ax.set_ylabel(spec['ylabel'], fontsize=8)
+        ax.tick_params(axis='both', labelsize=7, direction='in')
+
+        if spec['invert']:
+            ax.invert_yaxis()
+
+        if xlim is not None:
+            ax.set_xlim(xlim)
+
+        ax.grid(axis='x', color='0.9', lw=0.45, alpha=0.8)
+
+        if i < n_panels - 1:
+            ax.tick_params(axis='x', which='both', labelbottom=False)
+            ax.spines['bottom'].set_visible(False)
+        else:
+            ax.set_xlabel('Time (kyr)', fontsize=8)
+
+        if i > 0:
+            ax.spines['top'].set_visible(True)
+
+    axes[0].text(
+        0.01,
+        0.92,
+        f'{int(len(pulse_idx)/2)} thermal pulses',
+        transform=axes[0].transAxes,
+        fontsize=8,
+        ha='left',
+        va='top',
+        bbox=dict(
+            boxstyle='round,pad=0.2',
+            facecolor='white',
+            edgecolor='none',
+            alpha=0.75,
+        ),
+    )
+
+    # Do not use tight_layout here; it will reintroduce gaps.
+    fig.subplots_adjust(
+        left=0.10,
+        right=0.985,
+        top=0.985,
+        bottom=0.075,
+        hspace=0.0,
+    )
+
+    fig.align_ylabels(axes)
+
+    save_fig(fig, output_dir, basename)
+    plt.close()
+
+    print(
+        f"  Combined TP-AGB time-series saved with {n_panels} panels "
+        f"and {len(pulse_idx)} pulse markers"
+    )
+
+
 def plot_diagnostics(history, output_dir, basename='fig_tpagb_diagnostics', xlim=None):
     """
     Plot TP-AGB diagnostic panels.
@@ -941,27 +1418,60 @@ def select_single_pulse(history, skip_first=5):
     else:
         chosen = skip_first
 
+    #chosen = chosen - 1
+
     log_LHe = history['log_LHe']
     age     = history['star_age']
 
     prev_peak_idx = pulse_idx[chosen - 1] if chosen > 0 else 0
-    this_peak_idx = pulse_idx[chosen]
+    this_peak_idx = pulse_idx[chosen-1]
     next_peak_idx = (pulse_idx[chosen + 1]
                      if chosen + 1 < len(pulse_idx) else len(age) - 1)
 
-    # --- lead_in: 20 % from previous peak toward this peak -----------------
-    # This puts us well into the quiescent interpulse, far from the knee.
-    lead_in_idx = prev_peak_idx + int(0.20 * (this_peak_idx - prev_peak_idx))
 
-    # --- knee: first point on rising slope above 25 % of peak excursion ----
-    baseline  = log_LHe[lead_in_idx]
+
+
+
+    # --- initial knee estimate using current baseline approach --------------
+    baseline_guess_idx = prev_peak_idx + int(0.20 * (this_peak_idx - prev_peak_idx))
+
+    baseline  = log_LHe[baseline_guess_idx]
     peak_val  = log_LHe[this_peak_idx]
     threshold = baseline + 0.25 * (peak_val - baseline)
-    knee_idx  = lead_in_idx
-    for k in range(lead_in_idx, this_peak_idx):
+
+    knee_idx = baseline_guess_idx
+    for k in range(baseline_guess_idx, this_peak_idx):
         if np.isfinite(log_LHe[k]) and log_LHe[k] >= threshold:
             knee_idx = k
             break
+
+    # --- lead_in: force it to be visibly before the knee --------------------
+    lead_in_offset_kyr = 3.0
+    target_age = age[knee_idx] - lead_in_offset_kyr * 1e3
+
+    pre_knee = np.where(age < age[knee_idx])[0]
+
+    if pre_knee.size > 0:
+        lead_in_idx = pre_knee[np.argmin(np.abs(age[pre_knee] - target_age))]
+    else:
+        lead_in_idx = max(0, knee_idx - 1)
+
+    # --- knee: first point on rising slope above 25 % of peak excursion -----
+    baseline = log_LHe[lead_in_idx]
+    peak_val = log_LHe[this_peak_idx]
+
+    threshold = baseline + 0.25 * (peak_val - baseline)
+
+    knee_idx = lead_in_idx
+    for k in range(lead_in_idx + 1, this_peak_idx):
+        if np.isfinite(log_LHe[k]) and log_LHe[k] >= threshold:
+            knee_idx = k
+            break
+
+    # Make sure knee never sits directly on top of lead-in.
+    if knee_idx <= lead_in_idx:
+        knee_idx = min(lead_in_idx + 1, this_peak_idx)
+
 
     # --- return_q: midpoint of interpulse after this peak -------------------
     return_q_idx = (this_peak_idx + next_peak_idx) // 2
@@ -983,20 +1493,28 @@ def select_single_pulse(history, skip_first=5):
     }
 
 
+
 # ---------------------------------------------------------------------------
-# STATIC FIGURE  –  single pulse + four SED panels
+# STATIC FIGURE  –  single pulse + overlaid SEDs
 # ---------------------------------------------------------------------------
 
 def plot_single_pulse_with_seds(history, sed_dir, output_dir,
                                 basename='fig_tpagb_single_pulse',
                                 skip_first=5):
     """
-    Left column  : Two stacked panels sharing the x-axis —
-                     top:    log_LHe vs time  (He-burning driver)
-                     bottom: V-band magnitude vs time  (observed response)
-                   Both show colour-coded vertical markers at the four phases.
-    Right panels : 2 × 2 grid of SEDs at those four phases, y-axis unified.
+    Left column:
+        Two vertically touching panels sharing one x-axis.
+        Top:    V-band magnitude
+        Bottom: log_LHe
+
+    Right column:
+        One SED panel with the four pulse phases overplotted.
+        Phase colour coding is preserved.
     """
+
+    from matplotlib.lines import Line2D
+    from matplotlib.ticker import FixedLocator, FuncFormatter, NullLocator
+
     info = select_single_pulse(history, skip_first=skip_first)
     if info is None:
         print("Warning: Not enough thermal pulses to isolate a single pulse. Skipping.")
@@ -1009,184 +1527,418 @@ def plot_single_pulse_with_seds(history, sed_dir, output_dir,
     t_win_kyr = (info['t_window'][0] / 1e3, info['t_window'][1] / 1e3)
     win_mask  = (time_kyr >= t_win_kyr[0]) & (time_kyr <= t_win_kyr[1])
 
-    # V-band magnitudes
+    # Use onset/knee as t = 0 for the left panels.
+    t_ref_kyr = time_kyr[info['knee']]
+    time_rel_kyr = time_kyr - t_ref_kyr
+
+    x_min = np.nanmin(time_rel_kyr[win_mask])
+    x_max = np.nanmax(time_rel_kyr[win_mask])
+
+    dx = np.diff(np.sort(np.unique(time_rel_kyr[win_mask])))
+    dx = dx[np.isfinite(dx) & (dx > 0)]
+
+    if dx.size > 0:
+        linthresh = max(0.02, 3.0 * np.nanmedian(dx))
+    else:
+        linthresh = 0.05
+
     mag_cols = find_magnitude_columns(history, 'johnson')
-    has_V    = 'V' in mag_cols
+    has_V = 'V' in mag_cols
+
     if has_V:
         V_mag = history[mag_cols['V']]
 
-    # ---- Phase definitions --------------------------------------------------
     phases = [
         ('lead_in',  'Lead-in',         '#4878d0'),
-        ('knee',     'Onset (knee)',     '#ee854a'),
-        ('peak',     'Pulse peak',       '#d62728'),
-        ('return_q', 'Return to quiet',  '#6acc65'),
+        ('knee',     'Onset (knee)',    '#ee854a'),
+        ('peak',     'Pulse peak',      '#d62728'),
+        ('return_q', 'Return to quiet', '#6acc65'),
     ]
 
-    # ---- Consistent SED y-axis across panels --------------------------------
-    wl_min, wl_max = 3000, 30000
+    # -----------------------------------------------------------------------
+    # Load SEDs once
+    # -----------------------------------------------------------------------
+
+    wl_min, wl_max = 3000.0, 30000.0
+
+    sed_data = []
     fl_peaks = []
-    for phase_key, _, _ in phases:
-        idx = info[phase_key]
-        mn  = get_model_number_at_index(history, idx)
-        sf  = find_sed_file(sed_dir, mn)
-        if sf:
-            d = load_sed_csv(sf)
-            if d and 'wavelengths' in d:
-                m = (d['wavelengths'] >= wl_min) & (d['wavelengths'] <= wl_max)
-                if m.any() and d['fluxes'][m].max() > 0:
-                    fl_peaks.append(d['fluxes'][m].max())
-    fl_max_global = (np.percentile(fl_peaks, 99) * 1.15) if fl_peaks else 1.0
-
-    # ---- Figure layout ------------------------------------------------------
-    # Left column: two stacked panels — V-band (larger, observable) on top,
-    #              log_LHe (smaller, driver) on bottom
-    # Right column: 2×2 SED grid, tightly packed
-    fig = plt.figure(figsize=(APJ_DOUBLE_COL, 5.0))
-
-    gs_outer = fig.add_gridspec(1, 2, width_ratios=[1.05, 1.6],
-                                 wspace=0.28,
-                                 left=0.08, right=0.98,
-                                 top=0.91, bottom=0.09)
-
-    # V-band on top (larger) to emphasise the observable; log_LHe below
-    gs_left = gs_outer[0].subgridspec(2, 1, hspace=0.06,
-                                       height_ratios=[1.4, 1])
-    ax_V   = fig.add_subplot(gs_left[0])
-    ax_lhe = fig.add_subplot(gs_left[1], sharex=ax_V)
-
-    gs_sed = gs_outer[1].subgridspec(2, 2, hspace=0.12, wspace=0.12)
-
-    # ---- helper: draw phase markers on an axis ------------------------------
-    def draw_phase_markers(ax, draw_legend=False):
-        handles = []
-        for phase_key, label, color in phases:
-            idx  = info[phase_key]
-            t_ph = time_kyr[idx]
-            ax.axvline(t_ph, color=color, lw=1.2, ls='--', alpha=0.85, zorder=3)
-            handles.append(Line2D([0], [0], color=color, lw=1.5, ls='--',
-                                   marker='o', markersize=5,
-                                   markeredgecolor='k', markeredgewidth=0.4,
-                                   label=label))
-        if draw_legend:
-            ax.legend(handles=handles, fontsize=6.5,
-                      loc='upper left', framealpha=0.9)
-        return handles
-
-    # ---- Top left: V-band photometry (observable — the focus) ---------------
-    if has_V:
-        valid_V = win_mask & np.isfinite(V_mag)
-        ax_V.plot(time_kyr[valid_V], V_mag[valid_V],
-                  color=JOHNSON_FILTERS['V']['color'], lw=1.3, zorder=2)
-
-        for phase_key, label, color in phases:
-            idx  = info[phase_key]
-            t_ph = time_kyr[idx]
-            v_pt = V_mag[idx]
-            if np.isfinite(v_pt):
-                ax_V.plot(t_ph, v_pt, 'o', color=color, ms=6, zorder=5,
-                          markeredgecolor='k', markeredgewidth=0.5)
-        draw_phase_markers(ax_V, draw_legend=True)
-
-        ax_V.invert_yaxis()
-        ax_V.set_ylabel(r'$V$ (mag)', fontsize=8)
-    else:
-        ax_V.text(0.5, 0.5, 'V-band not available',
-                  ha='center', va='center', transform=ax_V.transAxes, fontsize=8)
-        draw_phase_markers(ax_V, draw_legend=True)
-
-    ax_V.set_xlim(t_win_kyr)
-    ax_V.set_title(f'Pulse #{info["pulse_number"] + 1}', fontsize=9)
-    plt.setp(ax_V.get_xticklabels(), visible=False)
-
-    # ---- Bottom left: log_LHe (physical driver) -----------------------------
-    valid_lhe = win_mask & np.isfinite(log_LHe)
-    ax_lhe.plot(time_kyr[valid_lhe], log_LHe[valid_lhe],
-                'k-', lw=1.1, zorder=2)
 
     for phase_key, label, color in phases:
-        idx  = info[phase_key]
-        t_ph = time_kyr[idx]
-        lhe  = log_LHe[idx]
-        ax_lhe.plot(t_ph, lhe, 'o', color=color, ms=6, zorder=5,
-                    markeredgecolor='k', markeredgewidth=0.5)
-    draw_phase_markers(ax_lhe)
-
-    ax_lhe.set_xlim(t_win_kyr)
-    ax_lhe.set_ylabel(r'$\log(L_{\rm He}/L_\odot)$', fontsize=8)
-    ax_lhe.set_xlabel('Time (kyr)', fontsize=8)
-
-    # ---- Right: four SED panels — share x and y axes -----------------------
-    sed_axes = []
-    for i, (phase_key, label, color) in enumerate(phases):
-        row, col = divmod(i, 2)
-        # Share x and y with first panel for uniform axes, no wasted space
-        if i == 0:
-            ax_sed = fig.add_subplot(gs_sed[row, col])
-        elif col == 0:
-            ax_sed = fig.add_subplot(gs_sed[row, col], sharey=sed_axes[0])
-        else:
-            ax_sed = fig.add_subplot(gs_sed[row, col],
-                                     sharex=sed_axes[row * 2],
-                                     sharey=sed_axes[0])
-        sed_axes.append(ax_sed)
-
         idx = info[phase_key]
-        mn  = get_model_number_at_index(history, idx)
-        sf  = find_sed_file(sed_dir, mn)
+        mn = get_model_number_at_index(history, idx)
+        sf = find_sed_file(sed_dir, mn)
 
-        if sf:
-            d = load_sed_csv(sf)
-            if d and 'wavelengths' in d:
-                wl = d['wavelengths']
-                fl = d['fluxes']
-                m  = (wl >= wl_min) & (wl <= wl_max)
-                ax_sed.plot(wl[m], fl[m], '-', color=color, lw=0.85)
+        if not sf:
+            continue
 
-                for filt, props in JOHNSON_FILTERS.items():
-                    if filt in ['B', 'V', 'R', 'I']:
-                        ax_sed.axvline(props['wavelength'],
-                                       color=props['color'],
-                                       alpha=0.35, lw=0.8, zorder=0)
-                add_em_spectrum_regions(ax_sed, alpha=0.03)
+        d = load_sed_csv(sf)
 
-        ax_sed.set_xscale('log')
-        ax_sed.set_xlim(wl_min, wl_max)
-        ax_sed.set_ylim(0, fl_max_global)
+        if not d or 'wavelengths' not in d or 'fluxes' not in d:
+            continue
+
+        wl = d['wavelengths']
+        fl = d['fluxes']
+
+        m = (
+            np.isfinite(wl)
+            & np.isfinite(fl)
+            & (wl >= wl_min)
+            & (wl <= wl_max)
+        )
+
+        if not np.any(m):
+            continue
+
+        wl_plot = wl[m]
+        fl_plot = fl[m]
+
+        if fl_plot.size > 0 and np.nanmax(fl_plot) > 0:
+            fl_peaks.append(np.nanmax(fl_plot))
 
         teff = 10**history['log_Teff'][idx] if 'log_Teff' in history else float('nan')
         t_ph = time_kyr[idx]
-        ax_sed.text(0.97, 0.95, f'{teff:.0f} K\nt={t_ph:.1f} kyr',
-                    transform=ax_sed.transAxes, fontsize=5.5,
-                    ha='right', va='top', family='monospace',
-                    bbox=dict(boxstyle='round,pad=0.2', facecolor='white',
-                              alpha=0.75, edgecolor='none'))
 
-        for spine in ax_sed.spines.values():
-            spine.set_linewidth(0.6)
-        ax_sed.spines['top'].set_color(color)
-        ax_sed.spines['top'].set_linewidth(2.0)
+        sed_data.append({
+            'phase_key': phase_key,
+            'label': label,
+            'color': color,
+            'idx': idx,
+            'wl': wl_plot,
+            'fl': fl_plot,
+            'teff': teff,
+            'time_kyr': t_ph,
+        })
 
-        ax_sed.set_title(label, fontsize=7.5, color=color, fontweight='bold', pad=2)
-        ax_sed.tick_params(labelsize=5.5)
+    if fl_peaks:
+        fl_max_global = np.nanpercentile(fl_peaks, 99) * 1.15
+    else:
+        fl_max_global = 1.0
 
-        # Only show axis labels on outer edges
-        if row == 1:
-            ax_sed.set_xlabel(r'$\lambda$ ($\mathrm{\AA}$)', fontsize=6.5)
+    if not np.isfinite(fl_max_global) or fl_max_global <= 0:
+        fl_max_global = 1.0
+
+    sed_yticks = np.linspace(0.0, fl_max_global, 4)
+
+    # -----------------------------------------------------------------------
+    # Figure layout
+    # -----------------------------------------------------------------------
+
+    fig = plt.figure(figsize=(APJ_DOUBLE_COL, 4.6))
+
+    gs_outer = fig.add_gridspec(
+        1, 2,
+        width_ratios=[1.05, 1.35],
+        wspace=0.01,
+        left=0.08,
+        right=0.98,
+        top=0.96,
+        bottom=0.10,
+    )
+
+    gs_left = gs_outer[0].subgridspec(
+        2, 1,
+        hspace=0.01,
+        height_ratios=[1.4, 1.0],
+    )
+
+    ax_V = fig.add_subplot(gs_left[0])
+    ax_lhe = fig.add_subplot(gs_left[1], sharex=ax_V)
+
+    ax_sed = fig.add_subplot(gs_outer[1])
+
+    # -----------------------------------------------------------------------
+    # Helpers
+    # -----------------------------------------------------------------------
+
+    def draw_phase_markers(ax, draw_legend=False):
+        handles = []
+
+        for phase_key, label, color in phases:
+            idx = info[phase_key]
+            t_ph = time_rel_kyr[idx]
+
+            ax.axvline(
+                t_ph,
+                color=color,
+                lw=1.2,
+                ls='--',
+                alpha=0.85,
+                zorder=3,
+            )
+
+            handles.append(
+                Line2D(
+                    [0], [0],
+                    color=color,
+                    lw=1.5,
+                    ls='--',
+                    marker='o',
+                    markersize=5,
+                    markeredgecolor='k',
+                    markeredgewidth=0.4,
+                    label=label,
+                )
+            )
+
+        if draw_legend:
+            ax.legend(
+                handles=handles,
+                fontsize=8,
+                loc='lower left',
+                framealpha=0.9,
+            )
+
+    def make_left_xticks(x0, x1):
+        ticks = []
+
+        if x0 <= -10.0:
+            ticks.append(-10.0)
+        elif x0 <= -5.0:
+            ticks.extend([-5.0,-1.0])
+
+        ticks.append(0.0)
+
+        if x1 <= 5.0:
+            candidates = [1.0, 5.0]
+        elif x1 <= 20.0:
+            candidates = [5.0, 20.0]
+        elif x1 <= 80.0:
+            candidates = [1, 10.0, 50.0]
+        elif x1 <= 200.0:
+            candidates = [30.0, 100.0]
         else:
-            plt.setp(ax_sed.get_xticklabels(), visible=False)
-        if col == 0:
-            ax_sed.set_ylabel(r'$F_\lambda$', fontsize=6.5)
-        else:
-            plt.setp(ax_sed.get_yticklabels(), visible=False)
+            candidates = [100.0, 300.0]
 
-    fig.suptitle('TP-AGB: Single Thermal Pulse Anatomy', fontsize=10)
+        for tick in candidates:
+            if x0 <= tick <= x1:
+                ticks.append(tick)
+
+        ticks = [tick for tick in ticks if x0 <= tick <= x1]
+
+        if len(ticks) < 2:
+            ticks = sorted(set([x0, 0.0, x1]))
+
+        return ticks
+
+    def left_x_formatter(x, pos):
+        if np.isclose(x, 0.0):
+            return '0'
+        if abs(x) >= 10.0:
+            return f'{x:.0f}'
+        return f'{x:g}'
+
+    sed_xticks = [4.0e3, 1.0e4, 2.0e4]
+
+    def sed_x_formatter(x, pos):
+        if np.isclose(x, 4.0e3):
+            return r'$4\times10^3$'
+        if np.isclose(x, 1.0e4):
+            return r'$10^4$'
+        if np.isclose(x, 2.0e4):
+            return r'$2\times10^4$'
+        return ''
+
+    def sed_y_formatter(y, pos):
+        if not np.isfinite(y):
+            return ''
+
+        if np.isclose(y, 0.0):
+            return '0'
+
+        mantissa, exponent = f'{y:.1e}'.split('e')
+        mantissa = mantissa.rstrip('0').rstrip('.')
+        exponent = int(exponent)
+
+        return rf'${mantissa}\times10^{{{exponent}}}$'
+
+    left_xticks = make_left_xticks(x_min, x_max)
+
+    # -----------------------------------------------------------------------
+    # Left top: V-band magnitude
+    # -----------------------------------------------------------------------
+
+    if has_V:
+        valid_V = win_mask & np.isfinite(V_mag)
+
+        ax_V.plot(
+            time_rel_kyr[valid_V],
+            V_mag[valid_V],
+            color=JOHNSON_FILTERS['V']['color'],
+            lw=1.3,
+            zorder=2,
+        )
+
+        for phase_key, _, color in phases:
+            idx = info[phase_key]
+            t_ph = time_rel_kyr[idx]
+            v_pt = V_mag[idx]
+
+            if np.isfinite(v_pt):
+                ax_V.plot(
+                    t_ph,
+                    v_pt,
+                    'o',
+                    color=color,
+                    ms=6,
+                    zorder=5,
+                    markeredgecolor='k',
+                    markeredgewidth=0.5,
+                )
+
+        ax_V.invert_yaxis()
+        ax_V.set_ylabel(r'$V$ (mag)', fontsize=8)
+
+    else:
+        ax_V.text(
+            0.5,
+            0.5,
+            'V-band not available',
+            ha='center',
+            va='center',
+            transform=ax_V.transAxes,
+            fontsize=9,
+        )
+
+    draw_phase_markers(ax_V, draw_legend=True)
+
+    ax_V.set_xlim(x_min, x_max)
+    ax_V.set_xscale('symlog', linthresh=linthresh, linscale=1.0)
+    ax_V.xaxis.set_major_locator(FixedLocator(left_xticks))
+    ax_V.xaxis.set_major_formatter(FuncFormatter(left_x_formatter))
+    ax_V.xaxis.set_minor_locator(NullLocator())
+    ax_V.tick_params(axis='x', which='both', labelbottom=False)
+
+    # -----------------------------------------------------------------------
+    # Left bottom: log_LHe
+    # -----------------------------------------------------------------------
+
+    valid_lhe = win_mask & np.isfinite(log_LHe)
+
+    ax_lhe.plot(
+        time_rel_kyr[valid_lhe],
+        log_LHe[valid_lhe],
+        'k-',
+        lw=1.1,
+        zorder=2,
+    )
+
+    for phase_key, _, color in phases:
+        idx = info[phase_key]
+        t_ph = time_rel_kyr[idx]
+        lhe = log_LHe[idx]
+
+        if np.isfinite(lhe):
+            ax_lhe.plot(
+                t_ph,
+                lhe,
+                'o',
+                color=color,
+                ms=6,
+                zorder=5,
+                markeredgecolor='k',
+                markeredgewidth=0.5,
+            )
+
+    draw_phase_markers(ax_lhe)
+
+    ax_lhe.set_xlim(x_min, x_max)
+    ax_lhe.set_xscale('symlog', linthresh=linthresh, linscale=1.0)
+    ax_lhe.xaxis.set_major_locator(FixedLocator(left_xticks))
+    ax_lhe.xaxis.set_major_formatter(FuncFormatter(left_x_formatter))
+    ax_lhe.xaxis.set_minor_locator(NullLocator())
+
+    ax_lhe.set_ylabel(r'$\log(L_{\rm He}/L_\odot)$', fontsize=8)
+    ax_lhe.set_xlabel('Time from onset (kyr)', fontsize=8)
+
+    ax_V.spines['bottom'].set_visible(False)
+    ax_lhe.spines['top'].set_visible(True)
+
+    # -----------------------------------------------------------------------
+    # Right: overlaid SEDs
+    # -----------------------------------------------------------------------
+
+    add_em_spectrum_regions(ax_sed, alpha=0.03)
+
+    for filt, props in JOHNSON_FILTERS.items():
+        if filt in ['B', 'V', 'R', 'I']:
+            ax_sed.axvline(
+                props['wavelength'],
+                color=props['color'],
+                alpha=0.30,
+                lw=0.8,
+                zorder=0,
+            )
+
+    sed_handles = []
+
+    for item in sed_data:
+        label = (
+            f"{item['label']} \n"
+            f"({item['teff']:.0f} K, {item['time_kyr']:.1f} kyr)"
+        )
+
+        line, = ax_sed.plot(
+            item['wl'],
+            item['fl'],
+            '-',
+            color=item['color'],
+            lw=1.1,
+            alpha=0.92,
+            label=label,
+            zorder=3,
+        )
+
+        sed_handles.append(line)
+
+    ax_sed.set_xscale('log')
+    ax_sed.set_xlim(wl_min, wl_max)
+    ax_sed.set_ylim(0.0, fl_max_global)
+
+    ax_sed.xaxis.set_major_locator(FixedLocator(sed_xticks))
+    ax_sed.xaxis.set_major_formatter(FuncFormatter(sed_x_formatter))
+    ax_sed.xaxis.set_minor_locator(NullLocator())
+    ax_sed.xaxis.set_minor_formatter(FuncFormatter(lambda x, pos: ''))
+
+    ax_sed.yaxis.set_major_locator(FixedLocator(sed_yticks))
+    ax_sed.yaxis.set_major_formatter(FuncFormatter(sed_y_formatter))
+    ax_sed.yaxis.offsetText.set_visible(False)
+
+    ax_sed.yaxis.tick_right()
+    ax_sed.yaxis.set_label_position('right')
+    ax_sed.tick_params(
+        axis='y',
+        which='both',
+        labelleft=False,
+        labelright=True,
+        left=False,
+        right=True,
+    )
+
+    ax_sed.set_xlabel(r'$\lambda$ ($\mathrm{\AA}$)', fontsize=9)
+    ax_sed.set_ylabel(r'$F_\lambda$', fontsize=9)
+
+    ax_sed.legend(
+        handles=sed_handles,
+        loc='upper left',
+        fontsize=6.5,
+        framealpha=0.9,
+        ncol=1,
+    )
+
+    ax_sed.tick_params(axis='both', labelsize=8)
+
+    for spine in ax_sed.spines.values():
+        spine.set_linewidth(0.7)
 
     save_fig(fig, output_dir, basename)
     plt.close()
-    print(f"  Pulse #{info['pulse_number']+1} selected "
-          f"(history index {info['pulse_hist_idx']}), "
-          f"window {t_win_kyr[0]:.1f}–{t_win_kyr[1]:.1f} kyr")
+
+    print(
+        f"  Single pulse selected "
+        f"(history index {info['pulse_hist_idx']}), "
+        f"window {t_win_kyr[0]:.1f}–{t_win_kyr[1]:.1f} kyr"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1522,6 +2274,8 @@ def main():
     if tp_xlim:
         print("\nGenerating figures (TP phase only)...")
 
+        plot_tpagb_timeseries(history, output_dir, xlim=[28100, 29010])
+
         plot_lightcurves(history, output_dir,
                          basename='fig_tpagb_lightcurves_tp', xlim=tp_xlim)
         plot_diagnostics(history, output_dir,
@@ -1534,34 +2288,34 @@ def main():
                          basename='fig_tpagb_summary_tp', xlim=tp_xlim)
 
     # --- Single-pulse anatomy figure + movie ---
-    if sed_dir.exists():
-        print("\nGenerating single-pulse anatomy figure...")
-        plot_single_pulse_with_seds(history, sed_dir, output_dir,
-                                    basename='fig_tpagb_single_pulse')
+    #if sed_dir.exists():
+    #    print("\nGenerating single-pulse anatomy figure...")
+    #    plot_single_pulse_with_seds(history, sed_dir, output_dir,
+    ##                                basename='fig_tpagb_single_pulse')
 
-        print("\nGenerating single-pulse anatomy movie...")
-        make_single_pulse_movie(history, sed_dir, output_dir,
-                                filename='fig_tpagb_single_pulse_movie.mp4',
-                                fps=args.movie_fps)
-    else:
-        print(f"Warning: SED directory {sed_dir} not found - skipping single-pulse outputs.")
+     #   print("\nGenerating single-pulse anatomy movie...")
+     #   make_single_pulse_movie(history, sed_dir, output_dir,
+     #                           filename='fig_tpagb_single_pulse_movie.mp4',
+     #                           fps=args.movie_fps)
+    #else:
+    #    print(f"Warning: SED directory {sed_dir} not found - skipping single-pulse outputs.")
 
     # --- SED Movie ---
-    if sed_dir.exists():
-        print("\nGenerating SED movie (full range)...")
-        make_sed_movie(history, sed_dir, output_dir,
-                       filename='fig_tpagb_sed_movie.mp4',
-                       fps=args.movie_fps, tp_only=False)
+    #if sed_dir.exists():
+    #    print("\nGenerating SED movie (full range)...")
+    #    make_sed_movie(history, sed_dir, output_dir,
+    #                   filename='fig_tpagb_sed_movie.mp4',
+    ##                   fps=args.movie_fps, tp_only=False)
+#
+    #    if tp_xlim:
+    #        print("\nGenerating SED movie (TP phase only)...")
+    #        make_sed_movie(history, sed_dir, output_dir,
+    #                       filename='fig_tpagb_sed_movie_tp.mp4',
+    #                       fps=args.movie_fps, tp_only=True)
+    #else:
+    #    print(f"Warning: SED directory {sed_dir} not found – skipping movie.")
 
-        if tp_xlim:
-            print("\nGenerating SED movie (TP phase only)...")
-            make_sed_movie(history, sed_dir, output_dir,
-                           filename='fig_tpagb_sed_movie_tp.mp4',
-                           fps=args.movie_fps, tp_only=True)
-    else:
-        print(f"Warning: SED directory {sed_dir} not found – skipping movie.")
-
-    print(f"\nDone! All outputs saved to: {output_dir}")
+    #print(f"\nDone! All outputs saved to: {output_dir}")
 
 
 if __name__ == '__main__':
