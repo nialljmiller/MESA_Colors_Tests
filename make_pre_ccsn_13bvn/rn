@@ -46,5 +46,5 @@ do_one inlist_to_cc_header final.mod
 
 date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S"
 
-echo 'finished all inlists for make_pre_ccsn_13bvn'
+echo 'finished all inlists for make_pre_ccsn_tlusty_mergedbin'
 

@@ -1,0 +1,11 @@
+eval=29
+Teff=6570.00
+L=43.5824
+alfam=0.14235
+mass=0.63765
+period=0.525382 d (err 0.382%)
+amp_last10_median=1.00803 (frac 0.9633)
+vmax_cs_last=7.0889
+best_cycle=119
+RMS=0.09395
+objective=0.09395

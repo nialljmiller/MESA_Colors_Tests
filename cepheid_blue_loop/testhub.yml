@@ -107,3 +107,30 @@
     - inlist: inlist_start_header
     - inlist: inlist_start_header
     - inlist: inlist_start_header
+    - inlist: inlist_start_header
+    - inlist: inlist_start_header
+    - inlist: inlist_start_header
+    - inlist: inlist_start_header
+      runtime_minutes:  33.44
+      model_number:         1857
+      star_age:     9.8859067812198848E+07
+      num_retries:            0
+      log_rel_run_E_err:        -8.0659103599239312
+      steps:         2467
+      retries:            0
+      redos:            0
+      solver_calls_made:         2467
+      solver_calls_failed:            0
+      solver_iterations:         9471
+    - inlist: inlist_cepheid_blue_loop_header
+      runtime_minutes:  10.25
+      model_number:         2199
+      star_age:     1.0955472826173513E+08
+      num_retries:            1
+      log_rel_run_E_err:        -8.0708944942908545
+      steps:          342
+      retries:            1
+      redos:            0
+      solver_calls_made:          343
+      solver_calls_failed:            1
+      solver_iterations:         2366

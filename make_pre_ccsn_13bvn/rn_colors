@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+source "${MESA_DIR}/star/test_suite/test_suite_helpers"
+do_one inlist_to_post_si_burn_header after_si_burn.mod
+do_one inlist_to_cc_header final.mod

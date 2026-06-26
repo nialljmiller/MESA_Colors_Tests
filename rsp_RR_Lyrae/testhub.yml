@@ -190,3 +190,21 @@
       solver_calls_made:        12022
       solver_calls_failed:            0
       solver_iterations:        38579
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:   6.79
+      model_number:        21966
+      star_age:     2.4828197903020266E-02
+      num_retries:            0
+      log_rel_run_E_err:        -7.2295074510788817
+      steps:        21966
+      retries:            0
+      redos:            0
+      solver_calls_made:        21966
+      solver_calls_failed:            0
+      solver_iterations:        81437
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header

@@ -1,0 +1,117 @@
+    - inlist: inlist_to_TP_AGB_header
+    - inlist: inlist_to_TP_AGB_header
+    - inlist: inlist_to_TP_AGB_header
+    - inlist: inlist_to_TP_AGB_header
+    - inlist: inlist_to_TP_AGB_header
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+      runtime_minutes:  97.60
+      model_number:        11988
+      star_age:     1.2275253163614204E+10
+      num_retries:           42
+      log_rel_run_E_err:        -7.4871306206238302
+      steps:        12123
+      retries:           44
+      redos:            0
+      solver_calls_made:        12167
+      solver_calls_failed:           44
+      solver_iterations:        60135
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+      runtime_minutes:  47.44
+      model_number:        11988
+      star_age:     1.2275253163614204E+10
+      num_retries:           42
+      log_rel_run_E_err:        -7.4871306206238302
+      steps:        12123
+      retries:           44
+      redos:            0
+      solver_calls_made:        12167
+      solver_calls_failed:           44
+      solver_iterations:        60135
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+      runtime_minutes:  51.53
+      model_number:        11979
+      star_age:     1.2325198883894489E+10
+      num_retries:           42
+      log_rel_run_E_err:        -7.4259818934399640
+      steps:        12114
+      retries:           44
+      redos:            0
+      solver_calls_made:        12158
+      solver_calls_failed:           44
+      solver_iterations:        61412
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+      runtime_minutes:  49.98
+      model_number:        11984
+      star_age:     1.2325095252012247E+10
+      num_retries:           48
+      log_rel_run_E_err:        -7.4137879778462397
+      steps:        12165
+      retries:           50
+      redos:            0
+      solver_calls_made:        12215
+      solver_calls_failed:           50
+      solver_iterations:        61722
+    - inlist: inlist_to_wd
+      runtime_minutes:  49.22
+      model_number:        11988
+      star_age:     1.2325095252012247E+10
+      num_retries:           52
+      log_rel_run_E_err:        -7.4137561520891735
+      steps:        12169
+      retries:           54
+      redos:            0
+      solver_calls_made:        12223
+      solver_calls_failed:           54
+      solver_iterations:        61862
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+      runtime_minutes:  70.82
+      model_number:        14700
+      star_age:     1.2325165178822968E+10
+      num_retries:          201
+      log_rel_run_E_err:        -7.2591557875057351
+      steps:        14882
+      retries:          202
+      redos:            0
+      solver_calls_made:        15084
+      solver_calls_failed:          202
+      solver_iterations:        85374
+    - inlist: inlist_to_wd
+      runtime_minutes:  73.72
+      model_number:        13371
+      star_age:     1.2325167146791531E+10
+      num_retries:          153
+      log_rel_run_E_err:        -8.4707972233751061
+      steps:        13553
+      retries:          155
+      redos:            0
+      solver_calls_made:        13708
+      solver_calls_failed:          155
+      solver_iterations:        90781
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd
+    - inlist: inlist_cool_wd
+    - inlist: inlist_cool_wd
+    - inlist: inlist_to_wd
+    - inlist: inlist_to_wd

@@ -111,7 +111,7 @@ def draw_density(ax, H, xedges, yedges, norm):
         xedges,
         yedges,
         H,
-        cmap="magma",
+        cmap="Greys",
         norm=norm,
         shading="auto",
         rasterized=True,
@@ -134,8 +134,8 @@ def main():
     full_xlim = (-1.0, 5.0)
     full_ylim = (-5.4, 18.0)
 
-    wd_xlim = (-0.8, 1.8)
-    wd_ylim = (7.7, 16.0)
+    wd_xlim = (-0.8, 1.3)
+    wd_ylim = (7.4, 16.0)
 
     x = gaia["bp_rp"].to_numpy()
     y = gaia["abs_g"].to_numpy()
@@ -158,9 +158,9 @@ def main():
     if len(counts) == 0:
         raise RuntimeError("No Gaia points survived plotting cuts.")
 
-    vmax = np.nanpercentile(counts, 98.8)
+    vmax = np.nanpercentile(counts, 96.8)
     vmax = max(vmax, 2.0)
-    norm = LogNorm(vmin=1.0, vmax=vmax)
+    norm = LogNorm(vmin=0.1, vmax=vmax)
 
     plt.rcParams.update(
         {
@@ -204,15 +204,16 @@ def main():
     m1 = draw_density(ax1, H_full, xe_full, ye_full, norm)
     m2 = draw_density(ax2, H_wd, xe_wd, ye_wd, norm)
 
-    track_color = "#18c2d2"
+    track_color = "#0072B2"
+
 
     ax1.plot(
         mesa["bp_rp"],
         mesa["M_G"],
         color=track_color,
-        lw=2.4,
+        lw=2,
         zorder=10,
-        solid_capstyle="round",
+        #solid_capstyle="round",
     )
 
     ax2.plot(
@@ -221,16 +222,15 @@ def main():
         color=track_color,
         lw=2.4,
         zorder=10,
-        solid_capstyle="round",
+        #solid_capstyle="round",
         label="MESA Colors WD cooling track",
     )
 
     ax2.scatter(
         [mesa["bp_rp"].iloc[0], mesa["bp_rp"].iloc[-1]],
         [mesa["M_G"].iloc[0], mesa["M_G"].iloc[-1]],
-        s=58,
+        s=30,
         facecolor=track_color,
-        edgecolor="black",
         linewidth=0.9,
         zorder=11,
     )
@@ -274,7 +274,7 @@ def main():
     cb.outline.set_linewidth(1.0)
 
     leg = ax2.legend(
-        loc="lower right",
+        loc="lower left",
         fontsize=14,
         frameon=True,
         framealpha=0.92,

@@ -1,0 +1,1011 @@
+\documentclass[linenumbers,apj,twocolumn, floatfix]{aastex701} \usepackage{amsmath} \usepackage{longtable} \usepackage{graphicx} \usepackage{ulem} \usepackage{xcolor} \usepackage{lettrine} \usepackage{yfonts} \usepackage{rotating}
+
+\usepackage[colorinlistoftodos]{todonotes}
+
+% Define custom comment commands \newcommand{\NM}[1]{\todo[color=green!20, inline]{\textbf{Niall:} #1}} \newcommand{\MJ}[1]{\todo[color=blue!20, inline]{\textbf{Meridith:} #1}} \newcommand{\PM}[1]{\todo[color=purple!20, inline]{\textbf{Philip:} #1}} \newcommand{\TBD}[1]{\todo[color=red!20, inline]{\textbf{TBD:} #1}}
+
+\newcommand{\fbol}{F_{\rm bol}} \newcommand{\mbol}{M_{\rm bol}}
+
+\begin{document}
+
+\title{MESA Colors: Synthetic Photometry During Stellar Evolution with MESA}
+
+\author[0000-0002-3780-0592]{Niall Miller} \affiliation{University of Wyoming, 1000 E University Ave, Laramie, WY USA} \email{niall.j.miller@gmail.com}
+
+\author[0000-0002-8717-127X]{Meridith Joyce} \affiliation{University of Wyoming, 1000 E University Ave, Laramie, WY USA} \email{mjoyce8@uwyo.edu}
+
+\author[0000-0001-6631-2566]{Philip Mocz} \affiliation{Center for Computational Astrophysics, Flatiron Institute, 162 Fifth Avenue New York, NY 10010, USA} \email{pmocz@flatironinstitute.org}
+
+\collaboration{all}{The MESA Team}
+
+\begin{abstract}
+% ABSTRACT POINTS — prose to be added later
+% Problem:
+%   - Stellar evolution codes output L, Teff, logg — not directly observable quantities
+%   - Observers measure flux in specific bandpasses; comparison requires atmosphere models + filter convolution
+%   - Traditional post-processing: separate pipeline, reproducibility issues, temporal down-sampling of rapid phases
+% Solution:
+%   - MESA Colors: runtime synthetic photometry integrated directly into MESA
+%   - At each history-output timestep: interpolate atmosphere grid, apply geometric dilution, convolve with filters, append to history.data
+%   - Configured via \&colors namelist — version-controlled alongside stellar evolution parameters
+%   - Supports AB, Vega, ST systems; arbitrary filter sets; multiple atmosphere grid families
+% Demonstrations (4 parallel cases, each with: physical regime / atmosphere grid / filter system / physical check):
+%   - RSP / RR Lyrae: color tracks Teff with r=-0.999; phase offset between color and radius recovered; Roman WFI
+%   - Starspots: blue-band suppression > red-band for two-temperature photosphere; BT-Settl; LSST ugrizy
+%   - White dwarf cooling: monotonic fading and color evolution at logg~7-9; Koester DA; LSST ugrizy
+%   - Blue loops: smooth interpolation across ~3400 K; u-band amplitude >5x red; Kurucz; LSST ugrizy
+% Impact / Availability:
+%   - Produces output in native filter systems of LSST, Roman, PLATO, Gaia, TESS — no external color transformation needed
+%   - Distributed with MESA; SED\_Tools utility provided for atmosphere grid construction
+%   - All demonstrations reproducible from archived inlists
+
+the problem (gap between theoretical tracks and observational data), the solution (MESA Colors module for runtime synthetic photometry), key capabilities demonstrated (breadth of astrophysical regimes), one real-data validation case, and impact (enables direct comparison with survey-era photometry).
+
+\end{abstract}
+
+\keywords{\uat{Astronomy data visualization}{1968} \uat{Stellar evolution}{1599} \uat{Stellar photometry}{1573} \uat{Synthetic stellar photometry}{1646} \uat{Stellar atmospheres}{1584} \uat{Computational methods}{1965}}
+
+\section{Introduction}
+\label{sec:intro}
+
+\subsection{The Theory-Observation Gap in Stellar Evolution}
+\label{sec:problem}
+
+Stellar evolution theory has achieved remarkable predictive power, with codes such as MESA\citep{MESAV} routinely computing detailed models from pre-main-sequence contraction through advanced burning phases and stellar endpoints.
+These calculations produce fundamental physical quantities—luminosity, effective temperature, surface gravity, composition profiles—that characterize the evolving stellar structure.
+However, observers do not measure luminosity or effective temperature directly.
+Instead, photometric surveys detect flux in specific bandpasses, producing magnitudes that depend on the convolution of a star's spectral energy distribution with an instrument's wavelength-dependent response function.
+This mismatch between theoretical outputs and observational measurements has historically required post-processing: evolutionary tracks computed in ($L$, $T_{\rm eff}$) space must be transformed into color-magnitude diagrams via separate calculations that interpolate stellar atmosphere models, convolve with filter transmission curves, and apply photometric zero-points.
+
+The traditional workflow separating evolution calculation from synthetic photometry introduces several inefficiencies.
+Post-processing pipelines require additional infrastructure—standalone codes or scripts that read MESA output, query atmosphere libraries, and write photometric products to new files.
+This separation creates opportunities for inconsistency when different research groups adopt different atmosphere models, interpolation schemes, or filter transmission curves to transform the same evolutionary tracks.
+The problem compounds when comparing time-domain phenomena: a MESA model of a pulsating star produces luminosity and effective temperature at each timestep, but constructing synthetic multi-band light curves requires a separate processing step that may sample the evolution at lower cadence than MESA's native output.
+
+For rapid evolutionary phases such as thermal pulses or blue loop excursions, this temporal down-sampling can obscure features that would be present in high-cadence observational data.
+The gap between theory and observation becomes particularly acute in the era of large-scale photometric surveys.
+
+The Gaia mission has measured parallaxes, proper motions, and multi-band photometry for nearly two billion stars \citep{gaia_edr3_2}, enabling unprecedented comparisons between theoretical isochrones and observed color-magnitude diagrams.
+Upcoming missions—the Nancy Grace Roman Space Telescope\citep{roman}, the Vera C.
+Rubin Observatory's Legacy Survey of Space and Time (LSST)\citep{LSST}, and the PLAnetary Transits and Oscillations of stars (PLATO)\citep{plato} mission—will extend this capability to time-domain observations, producing multi-epoch photometry in multiple passbands for billions of stars.
+These datasets demand efficient and accessible theoretical infrastructure capable of generating synthetic photometry in mission-specific filter systems at cadences matching the observational sampling.
+The traditional post-processing approach, while adequate for producing static isochrones, can struggle to provide the time-resolved multi-band predictions needed to interpret photometric time series from variable stars, eclipsing binaries, and stars undergoing rapid evolutionary transitions.
+
+Reproducibility represents another challenge inherent in the separation between evolution and photometry.
+A MESA inlist fully specifies an evolutionary calculation: initial conditions, input physics, numerical controls, and stopping criteria are documented in a version-controlled text file that can be re-run to reproduce the same stellar model.
+However, the subsequent transformation to synthetic photometry involves choices—which atmosphere grid, which interpolation method, which filters, which magnitude system—that are often documented separately or not at all.
+
+When synthetic photometry is computed as a post-processing step using external tools, these choices live outside the MESA workflow, complicating efforts to reproduce published results or compare models computed by different groups.
+
+\subsection{The MESA Colors Module: Integrating Synthetic Photometry into Stellar Evolution}
+\label{sec:module_capability}
+
+MESA Colors addresses these challenges by computing synthetic photometry at runtime, integrating the transformation from stellar structure to observer-ready magnitudes directly into the evolution workflow.
+The module operates as a post-processor that executes at each timestep where MESA writes history output: it queries the stellar state for current effective temperature, surface gravity, and composition; interpolates within a user-specified stellar atmosphere grid to construct a spectral energy distribution; applies geometric dilution to convert surface flux to observer-frame flux at a specified distance; integrates the SED to compute bolometric flux and magnitude; and convolves with user-specified filter transmission curves to produce synthetic magnitudes in all requested passbands.
+These photometric quantities are automatically appended as new columns in MESA's standard \texttt{history.data} output file, placing theoretical magnitudes alongside luminosity, effective temperature, and other evolutionary diagnostics in a single time-series table.
+This integration delivers time-dependent synthetic photometry sampled at MESA's native temporal resolution.
+
+For a pulsating star model computed with MESA's Radial Stellar Pulsations module, synthetic multi-band light curves are generated simultaneously with the pulsation calculation, capturing phase-resolved photometric variations without requiring separate post-processing.
+
+For a star undergoing a blue loop, synthetic colors trace the star's path through color-magnitude space at every history output, preserving rapid chromatic evolution that might be missed by coarse sampling.
+
+The temporal alignment between stellar structure evolution and synthetic photometry is exact by construction: both are computed from the same MESA state at the same timesteps, eliminating ambiguities about when a synthetic magnitude corresponds to the stellar model that produced it.
+Users configure synthetic photometry through a dedicated \texttt{colors} namelist in the MESA inlist, specifying the atmosphere grid directory, filter set, observing distance, and photometric system (AB, Vega, or ST).
+These configuration choices are version-controlled alongside the evolution parameters, ensuring that any synthetic photometry calculation can be reproduced by re-running the same inlist with the same MESA revision.
+
+Atmosphere grids and filter sets are treated as input data—users can substitute different atmosphere models or add new filter systems without modifying MESA source code.
+This extensibility enables direct comparison with diverse observational datasets: a model compared to Gaia photometry uses Gaia filter transmission curves and the Vega magnitude system; the same model compared to LSST data uses LSST $ugrizy$ filters and the AB system.
+
+\subsection{Advantages Over Traditional Post-Processing Workflows}
+\label{sec:advantages}
+
+The traditional workflow for producing synthetic photometry from stellar evolution models requires several sequential steps: running MESA to compute evolutionary tracks, exporting effective temperatures and radii at each timestep, and running a separate code or script to construct synthetic magnitudes using some choice of atmosphere models and filters.
+Each stage introduces an opportunity for errors to accumulate or consistency to be lost.
+If the comparison with observations reveals a discrepancy, adjusting the stellar model requires re-running all three stages independently.
+
+With MESA Colors, the first two steps collapse into one: running MESA automatically produces both the stellar evolution and the synthetic photometry, writing time-series magnitudes directly to \texttt{history.data}.
+If model adjustments are needed, re-running MESA regenerates the synthetic photometry automatically; there is no separate post-processing step to update.
+
+Reproducibility improves because all configuration choices are explicit and version-controlled.
+The MESA inlist documents not only the stellar evolution parameters but also the atmosphere grid, filter set, and magnitude system used to generate synthetic photometry.
+A researcher publishing evolutionary models with synthetic colors can archive the inlist and the input data products (atmosphere grids, filters), enabling others to reproduce the calculation exactly.
+This contrasts with workflows where synthetic photometry is computed using ad-hoc scripts that may not be published, atmosphere grids that are not clearly documented, or filter transmission curves that are approximated rather than obtained from official sources.
+
+The time-series alignment between stellar structure and synthetic photometry enables applications that are cumbersome with traditional workflows.
+Asteroseismology studies combining MESA structure models with GYRE pulsation calculations \citep{GYRE,2018Townsend} require matching pulsation mode predictions to observed photometric amplitudes and phases.
+With MESA Colors, synthetic magnitudes are computed at the same timesteps as the MESA structure models, ensuring exact temporal correspondence between the structure state, the pulsation modes (if computed), and the emergent photometry.
+This alignment is particularly valuable for time-domain phenomena where the cadence of synthetic photometry must match the cadence of observations.
+
+MESA Colors computes synthetic photometry at each timestep using the evolving surface properties of the MESA model, ensuring that the photometric predictions remain directly tied to the stellar evolution calculation throughout the run.
+Changes to the interior physics therefore affect the synthetic magnitudes through their impact on quantities such as effective temperature, surface gravity, radius, luminosity, and, where available, surface composition.
+This provides a tighter coupling between evolution and observables than workflows in which photometry is generated only after the calculation has finished.
+However, the synthetic SEDs are still obtained from external atmosphere grids, so the final photometry remains limited by the coverage and assumptions of those grids.
+
+Once a MESA run has produced the underlying stellar history, the Colors machinery can also be rerun in a lightweight stand-alone mode using the accompanying test-suite style workflows.
+This makes it possible to rapidly change atmosphere grids, filter sets, or magnitude systems and regenerate synthetic photometry without repeating the full stellar evolution calculation.
+
+Pre-computed products such as MIST remain the appropriate tool for many standard applications, including isochrone fitting and population-level comparisons under well-established physics assumptions.
+MESA Colors is intended for a different regime: custom MESA calculations, non-standard physics choices, and time-resolved applications in which synthetic photometry must remain tied to the evolving stellar model at every timestep.
+In this sense, the two approaches are complementary rather than competing.
+
+\section{Observational Context}
+\label{sec:observational}
+
+The development of MESA Colors coincides with a transformative era in time-domain astronomy.
+Three major facilities—the Nancy Grace Roman Space Telescope, the Vera C.
+Rubin Observatory's Legacy Survey of Space and Time (LSST), and the PLATO mission—will deliver multi-band photometric time series for billions of stars over the coming decade.
+These surveys create both opportunity and obligation for stellar theory: the opportunity to test evolutionary models against unprecedented datasets, and the obligation to provide predictions in the specific filter systems and temporal cadences these missions employ.
+
+Roman (launch 2027) emphasizes near-infrared imaging across seven filters (0.48–2.3 $\mu$m), targeting Galactic bulge populations, microlensing events, and resolved stellar populations in nearby galaxies with photometric precision of $\sim$0.01 mag to F184 = 26.
+LSST (operations 2025) provides the deepest wide-field time-domain coverage, imaging 18,000 deg$^2$ in six optical bands ($ugrizy$) with $\sim$3-day cadence and $\sim$1000 visits per field over ten years.
+PLATO (launch 2026) prioritizes asteroseismic precision, achieving 27 ppm photometry at 25-second cadence for bright stars across a single broad optical bandpass.
+Table~\ref{tab:survey_characteristics} summarizes these characteristics.
+
+\begin{table*}
+\centering
+\caption{Survey Characteristics\label{tab:survey_characteristics}}
+\begin{tabular}{lcccc}
+\hline\hline
+Survey & Filters & Cadence & Depth & Key Science \\
+\hline
+Roman & F062--F213 (7) & Days--weeks & F184 $\sim$ 26 & Bulge populations \\
+LSST & $ugrizy$ (6) & $\sim$3 days & $r \sim 24$ & Transients, variables \\
+PLATO & Broad (500--1000 nm) & 25 seconds & $V \sim 11$ & Asteroseismology \\
+\hline
+\end{tabular}
+\end{table*}
+
+This diversity of filter systems, cadences, and science goals means that no single pre-computed model library can serve all applications.
+Roman's near-IR emphasis demands atmosphere models extending to cool, molecular-rich regimes; LSST's multi-band cadence requires chromatic variability predictions; PLATO's asteroseismic focus needs coupling between interior pulsation physics and emergent photometry.
+More generally, the primary theoretical observable is no longer a single static point in the Hertzsprung-Russell diagram, but time-resolved, multi-band photometry that can be compared directly to survey data products.
+
+Runtime synthetic photometry provides three capabilities that are especially valuable in this context.
+\textit{Pathfinding:} before observations commence, theoretical predictions guide target selection and observing strategy.
+Which stellar populations will Roman resolve in M31?
+What magnitude range captures the blue loop phase in LSST filters?
+How do pulsation amplitudes vary across PLATO's bandpass?
+MESA Colors addresses such questions by generating synthetic photometry in mission-specific filter systems during model development, enabling survey teams to optimize their programs based on theoretical expectations.
+
+\textit{Rapid interpretation:} when surveys detect unexpected objects—a transient precursor, an outlier in color-magnitude space, a star with anomalous variability—theorists must respond quickly to guide follow-up observations.
+Adjusting a MESA model and re-running immediately produces updated synthetic magnitudes in the relevant filter system, accelerating the theory-observation feedback loop.
+
+\textit{Custom physics exploration:} pre-computed isochrone libraries necessarily adopt fixed physics assumptions.
+When observations reveal discrepancies—non-standard mass loss, unusual mixing, binary interactions—researchers need synthetic photometry reflecting their customized models.
+MESA Colors computes photometry from whatever stellar evolution calculation the user configures, enabling exploration of parameter space not covered by existing grids.
+
+These applications are driven by the nature of the observables themselves.
+Multi-band light curves encode chromatic information that discriminates between physical mechanisms: pulsations produce wavelength-dependent phase lags; starspots cause stronger modulation in blue bands; transient outbursts trace temperature evolution through color changes.
+Synthetic light curves must therefore capture this chromatic structure by convolving time-dependent SEDs with each filter's transmission curve.
+
+Color-magnitude diagrams remain the fundamental tool for population studies, but direct comparison between theory and observation requires synthetic magnitudes computed in the observer's filter system rather than transformed from another system through uncertain color equations.
+MESA Colors avoids that additional transformation step by computing magnitudes directly in user-specified filters (LSST $gri$, Roman F129, Gaia $G_{BP}/G_{RP}$, etc.).
+
+The demonstrations in Section~\ref{sec:demonstrations}, summarized in Table~\ref{tab:demo_summary}, are selected to exercise these capabilities across diverse physical regimes while producing outputs directly comparable to anticipated survey data products.
+
+\section{MESA Colors Machinery}
+\label{sec:methods}
+
+The MESA Colors module operates as an integrated component of the MESA stellar evolution framework, computing synthetic photometry at runtime by coupling stellar structure output with pre-processed stellar atmosphere grids and filter transmission curves.
+
+This section describes the computational pipeline, the role of key physical ingredients, and the workflow for using the module in practice.
+
+\subsection{Computational Pipeline}
+\label{sec:pipeline}
+
+The synthetic photometry calculation occurs at each MESA timestep where history output is written, transforming fundamental stellar parameters into observer-ready photometric quantities through a six-stage process.
+
+The pipeline begins by extracting the star's current surface parameters from the MESA evolution state: effective temperature ($T_{\rm eff}$), surface gravity ($\log g$), stellar radius ($R_*$), and surface metallicity ([M/H]).
+
+These parameters are then used to query a user-specified library of stellar atmosphere models.
+
+The module performs trilinear interpolation within this pre-computed grid across the three-dimensional parameter space of ($T_{\rm eff}$, $\log g$, [M/H]) to construct a specific spectral energy distribution (SED) representing the star's surface flux as a function of wavelength, $F_\lambda(\lambda)$.
+
+This interpolation leverages either tabulated atmosphere spectra stored as individual text files or a pre-computed flux cube stored in binary format for computational efficiency.
+
+Once the surface SED is constructed, geometric dilution is applied to convert surface flux to observer-frame flux.
+
+The dilution factor accounts for both the stellar radius and the distance to the observer: $F_{\rm obs}(\lambda) = F_\lambda(\lambda) \times (R_*/d)^2$, where $d$ is the user-specified distance (defaulting to 10 parsecs for absolute magnitudes).
+
+The diluted SED is then integrated over all wavelengths to compute the bolometric flux, $F_{\rm bol} = \int F_{\rm obs}(\lambda) \, d\lambda$, from which the bolometric magnitude is derived using the standard relation $M_{\rm bol} = -2.5 \log_{10}(F_{\rm bol}/F_{\rm bol,\odot})$.
+
+For bandpass photometry, the module convolves the observer-frame SED with each filter transmission curve specified in the user-selected instrument directory.
+
+Each filter file defines a wavelength-dependent throughput function $S_X(\lambda)$, representing the combined efficiency of telescope optics, filter glass, and detector quantum efficiency.
+
+The synthetic flux in filter $X$ is computed as:
+\begin{equation}
+F_X = \frac{\int F_{\rm obs}(\lambda) S_X(\lambda) \, d\lambda}{\int S_X(\lambda) \, d\lambda}.
+\end{equation}
+This flux is converted to a magnitude using the user-selected photometric system (AB, ST, or Vega).
+
+For the Vega system, the zero-point is defined such that the star Vega has magnitude zero in all bands:
+\begin{equation}
+m_X = -2.5 \log_{10}\left(\frac{\int F_{\rm obs}(\lambda) S_X(\lambda) \, d\lambda}{\int F_{\rm Vega}(\lambda) S_X(\lambda) \, d\lambda}\right),
+\end{equation}
+where $F_{\rm Vega}(\lambda)$ is the reference Vega spectrum provided by the user.
+
+For AB magnitudes, the zero-point is calibrated to a flat spectrum with $F_\nu = 3631$ Jy, while ST magnitudes use a flat spectrum with constant $F_\lambda$.
+
+Finally, the module appends three fixed columns to the MESA \texttt{history.data} file—\texttt{Mag\_bol}, \texttt{Flux\_bol}, and \texttt{Interp\_rad}—along with one synthetic magnitude column for each filter discovered in the instrument directory.
+
+The \texttt{Interp\_rad} diagnostic reports the Euclidean distance in parameter space between the stellar model and the nearest grid point, providing a quantitative measure of interpolation quality and alerting users when the model approaches or exceeds the atmosphere grid boundaries.
+
+\subsection{Stellar Atmosphere Models and Interpolation}
+\label{sec:atmosphere_grids}
+
+The fidelity of synthetic photometry depends critically on the stellar atmosphere grid used to construct SEDs.
+
+The module requires that atmosphere grids be organized in a standardized directory structure containing three essential components: a \texttt{lookup\_table.csv} file mapping individual atmosphere filenames to their physical parameters ($T_{\rm eff}$, $\log g$, [M/H]), a set of SED files providing wavelength-flux pairs for each grid point, and optionally a \texttt{flux\_cube.bin} binary file encoding the entire grid in a format optimized for rapid interpolation.
+
+The atmosphere grid defines the physical regime over which the module can reliably compute photometry.
+
+Grid coverage varies by model family; for example, the \citet{Kurucz1970,Castelli04} grid spans temperatures from 3,500 K to 50,000 K, surface gravities from $\log g = 0.0$ to 5.0, and metallicities from [M/H] = $-$5.0 to +1.0.
+
+Users working with cooler stars, such as M dwarfs or AGB giants, may require atmosphere models that extend to lower temperatures and include molecular opacity sources such as TiO, H$_2$O, and CN.
+
+Similarly, studies of evolved cool stars benefit from atmosphere grids computed with custom opacity tables (e.g., \AE SOPUS; \citealt{Marigo2009}) that properly account for molecular absorption features in the infrared.
+
+When a stellar model's parameters fall within the grid boundaries, the module performs trilinear interpolation to construct an SED at the exact ($T_{\rm eff}$, $\log g$, [M/H]) requested.
+
+If the model falls outside the grid, the module clamps to the nearest edge point and reports this via the \texttt{Interp\_rad} diagnostic.
+
+Users should exercise caution when interpreting photometry computed via extrapolation, as atmosphere physics may differ substantially outside the regime where models were validated.
+
+\subsection{Filter Transmission Curves and Photometric Systems}
+\label{sec:filters}
+
+Filter transmission curves encode the wavelength-dependent response of an observational system, combining the effects of mirror reflectivity, filter glass absorption, and detector quantum efficiency into a single dimensionless throughput function.
+
+The module expects filter files to be plain-text, two-column data files (wavelength in Angstroms, transmission between 0 and 1) with a single header line.
+
+Filter sets are organized hierarchically as \texttt{facility/instrument} directories; for example, the Gaia filter set resides in \texttt{GAIA/GAIA} and contains transmission curves for the G, G$_{\rm BP}$, G$_{\rm RP}$, and G$_{\rm RVS}$ bands.
+
+The module discovers filters dynamically by reading an index file located within the instrument directory.
+
+This index file (named identically to the instrument directory) lists one filter filename per line.
+
+Each filter filename (excluding the \texttt{.dat} extension) becomes a column name in the output \texttt{history.data} file, enabling users to add or remove filters by simply editing the index file and updating the filter directory contents.
+
+Magnitude zero-points are handled through the \texttt{mag\_system} parameter, which accepts three conventions: Vega, AB, and ST.
+
+The Vega system defines zero magnitude as the flux from the star Vega in each band, requiring the user to provide a reference Vega spectrum via the \texttt{vega\_sed} parameter.
+
+The AB system defines zero magnitude as a source with constant flux density $F_\nu = 3631$ Jy across all frequencies, making it independent of any reference star spectrum.
+
+The ST system defines zero magnitude as a source with constant flux density per unit wavelength, $F_\lambda = 3.63 \times 10^{-9}$ erg s$^{-1}$ cm$^{-2}$ \AA$^{-1}$.
+
+Users should select the magnitude system that matches their intended observational comparison; for example, Gaia DR3 magnitudes are calibrated in the Vega system, while SDSS magnitudes use the AB system.
+
+\subsection{SED\_Tools: Atmosphere Grid Construction and Management}
+\label{sec:sed_tools}
+
+Stellar atmosphere grids compatible with the Colors module must be organized in the standardized directory format described in Section~\ref{sec:atmosphere_grids}: a \texttt{lookup\_table.csv} mapping spectra to their physical parameters, individual SED files, and optionally a pre-computed \texttt{flux\_cube.bin}.
+Assembling such grids from publicly available model atmosphere libraries—particularly when combining multiple libraries to extend coverage across the parameter space—requires non-trivial preprocessing.
+
+SED\_Tools\footnote{\url{https://github.com/nialljmiller/SED_Tools}} is a Python utility developed alongside this work to streamline the construction and packaging of atmosphere grids for use with MESA Colors.
+Its primary functions are (i) downloading and reformatting spectra from standard model atmosphere sources into the two-column wavelength/flux format expected by the module, (ii) merging spectra from different model families into a single combined grid with a unified \texttt{lookup\_table.csv}, and (iii) generating the \texttt{flux\_cube.bin} binary cube that enables fast trilinear interpolation at runtime.
+
+Although each demonstration in this work uses a single atmosphere library (Table~\ref{tab:demo_summary}), no single model atmosphere family spans the full parameter range encountered across main-sequence dwarfs, AGB giants, pulsating variables, and white dwarfs.
+SED\_Tools therefore supports merging spectra from different families into a single packaged grid with a unified \texttt{lookup\_table.csv}---for example, pairing a cool-star library such as BT-Settl with a hotter library such as Kurucz/ATLAS9 across a transition temperature---so that applications spanning a wide temperature range can be served by a single self-consistent grid.
+
+Beyond initial construction, SED\_Tools provides a validation step that checks internal consistency of a packaged grid before it is passed to MESA Colors: it verifies that the wavelength grids of all constituent spectra are compatible, that the parameter coverage is free of gaps that would force the interpolation routine to extrapolate, and that the \texttt{lookup\_table.csv} entries are correctly formatted.
+This validation was applied to all atmosphere grids used in this work prior to ingestion by the Colors module.
+
+The tool is distributed as a standalone Python package and is not a MESA dependency; it is invoked once, offline, to produce a grid directory that is then passed to MESA Colors via the \texttt{stellar\_atm} inlist parameter.
+Complete documentation and usage examples are provided in the SED\_Tools repository \citep{SED_Tools}.
+
+\subsection{User Configuration}
+\label{sec:user_workflow}
+
+The MESA Colors module is configured through a dedicated \texttt{colors} namelist in the MESA inlist, separate from the standard \texttt{controls} and \texttt{star\_job} namelists.
+
+The master on/off switch is \texttt{use\_colors}, which when set to \texttt{.true.} activates all synthetic photometry calculations.
+
+Users specify the atmosphere grid directory via \texttt{stellar\_atm} and the filter set via \texttt{instrument}.
+
+The \texttt{distance} parameter sets the source distance in centimeters, defaulting to $3.0857 \times 10^{19}$ cm (10 parsecs) to produce absolute magnitudes; users modeling specific systems can set this to the actual source distance to compute apparent magnitudes.
+
+The \texttt{mag\_system} parameter selects the photometric zero-point convention (AB, ST, or Vega), and if using Vega, the \texttt{vega\_sed} parameter must point to a two-column reference spectrum file.
+
+Optional diagnostic outputs can be enabled via \texttt{make\_csv = .true.}, which writes the full SED and filter-convolved flux to CSV files in the directory specified by \texttt{colors\_results\_directory}.
+
+These CSV files are useful for debugging interpolation issues, verifying filter convolution results, or producing publication-quality spectral plots.
+
+Once configured, the module operates automatically without further user intervention.
+
+Photometry columns are appended to \texttt{history.data} whenever MESA writes history output, meaning that the temporal resolution of synthetic photometry is controlled by the standard MESA parameter \texttt{history\_interval}.
+
+Users requiring high-cadence photometric time series (e.g., for pulsating stars or rapid evolutionary phases) should set \texttt{history\_interval = 1} to compute photometry at every timestep, though this increases computational overhead and file sizes.
+
+Detailed configuration examples and complete inlist templates are provided in Appendix~\ref{app:config}.
+
+\subsection{Reproducibility and Validation}
+\label{sec:reproducibility}
+
+Reproducibility is ensured through several mechanisms built into the module design.
+
+All configuration parameters are stored in version-controlled MESA inlists, meaning that any synthetic photometry calculation can be reproduced by re-running the same inlist with the same MESA revision.
+
+Atmosphere grids and filter sets are treated as fixed input data products that can be archived alongside inlists and MESA output files.
+
+The specific atmosphere grid used in a calculation is identified by the \texttt{stellar\_atm} directory path, and users are encouraged to document the provenance of their atmosphere data (e.g., "Kurucz 2003 ATLAS9 grid downloaded from SED\_Tools repository on 2024-03-15").
+
+The module does not modify MESA's internal stellar structure calculation; it strictly post-processes the evolving stellar state to produce observer-ready photometry.
+
+This separation ensures that enabling or disabling the Colors module does not affect the stellar evolution itself, and synthetic photometry can be re-computed from archived \texttt{history.data} files without re-running the evolution.
+
+The MESA revision number and module version are implicitly tied to the inlist, and all physics choices that materially affect results—atmosphere grid resolution, filter transmission curves, interpolation method, magnitude system—are explicit user-configurable parameters.
+
+Diagnostic quantities are included in the output to facilitate validation.
+
+The \texttt{Interp\_rad} column provides a real-time assessment of interpolation quality, alerting users when their stellar model ventures beyond the atmosphere grid boundaries.
+
+When \texttt{make\_csv = .true.}, the module writes detailed SED files showing the wavelength-resolved flux before and after filter convolution, enabling users to visually verify that the synthetic photometry pipeline is behaving as expected.
+
+These diagnostic outputs are essential for identifying interpolation errors, filter mismatches, or atmosphere grid inadequacies.
+
+% ============================================================================
+% SECTION 4: DEMONSTRATIONS
+% ============================================================================
+\section{Demonstrations}
+\label{sec:demonstrations}
+
+\begin{table*}
+\centering
+\footnotesize
+\begin{tabular}{llllll}
+\hline\hline
+Demo & Physical regime & Atmosphere grid & Filter system & Mag.\ system & Physical check \\
+\hline
+TP-AGB
+& He-shell flash cycles
+& BT-Settl
+& Johnson $BVRI$
+& Vega
+& \parbox[t]{4.8cm}{Sawtooth brightening morphology; $B$-band amplitude $> I$-band} \\
+
+RSP (RR~Lyr)
+& Nonlinear radial pulsation
+& Kurucz/ATLAS9
+& Roman WFI F062--F213
+& AB
+& \parbox[t]{4.8cm}{Colour tracks $T_{\rm eff}$; phase offset between colour and radius} \\
+
+Starspots
+& Two-temperature photosphere
+& BT-Settl
+& LSST $ugrizy$
+& AB
+& \parbox[t]{4.8cm}{Blue-band flux suppression greater than red-band} \\
+
+White dwarf
+& Extreme $\log g$, degenerate EOS
+& Koester DA
+& LSST $ugrizy$
+& AB
+& \parbox[t]{4.8cm}{Monotonic fading and colour evolution at $\log g \sim 7$--9} \\
+
+Blue loops
+& Wide $T_{\rm eff}$ excursion
+& Kurucz/ATLAS9
+& LSST $ugrizy$
+& AB
+& \parbox[t]{4.8cm}{Smooth interpolation across ${\sim}3400$\,K range; $u$-band amplitude $\gtrsim 5{\times}$ red bands} \\
+\hline
+\end{tabular}
+}
+\caption{Summary of MESA Colors demonstration configurations. Each row corresponds
+to a demonstration in Section~\ref{sec:demonstrations}; the YREC SPOTS case
+(Section~\ref{sec:demo_yrec}) uses SED\_Tools as a standalone post-processor rather than
+runtime coupling. The ``Physical check'' column
+identifies the observable behavior verified to confirm correct module behavior.}
+\label{tab:demo_summary}
+
+\end{table*}
+
+The Vera C.\ Rubin Observatory's Legacy Survey of Space and Time \citep{LSST} will image 18{,}000\,deg$^2$ in six optical bands ($ugrizy$) with $\sim$3-day cadence over ten years, producing multi-band time series for billions of stars including millions of AGB variables, M and K dwarfs, and white dwarfs.
+The starspot, white dwarf, and blue loop demonstrations in this work all employ LSST $ugrizy$ filters precisely to produce forward models in the native LSST magnitude system, enabling direct comparison with observed color-magnitude distributions and variability amplitudes without any intermediate color transformation.
+
+The Nancy Grace Roman Space Telescope \citep{roman} will observe in seven near-infrared broadband filters (F062--F213; $0.48$--$2.3\,\mu$m) with photometric precision of $\sim$0.01\,mag, emphasizing Galactic bulge populations, microlensing events, and resolved stellar populations in nearby galaxies.
+The RSP demonstration employs Roman WFI filters specifically because their wavelength baseline spans the full Wien-to-Rayleigh-Jeans transition for RR~Lyrae temperatures, allowing the module's temperature sensitivity to be validated across all seven bands simultaneously and producing predictions directly relevant to Roman's Galactic Bulge Time Domain Survey.
+
+The Transiting Exoplanet Survey Satellite \citep[TESS;][]{tess} delivers sub-millimagnitude photometry across a single broad optical bandpass ($\sim$600--1000\,nm) with near-continuous cadence, accumulating sectors for an increasing fraction of the sky.
+Its primary relevance to MESA Colors is for time-domain modeling of eclipsing binaries and pulsating stars: because TESS photometric precision is high enough that discrepancies between successive model iterations are measurable, the workflow simplification offered by runtime photometry---where adjusting a MESA model immediately regenerates synthetic TESS-band magnitudes---directly accelerates the theory-observation feedback loop.
+
+The PLAnetary Transits and Oscillations of stars mission \citep{plato} will achieve 27\,ppm photometry at 25-second cadence for bright stars across a broad optical bandpass, with its primary science goal being asteroseismic characterization of exoplanet host stars.
+Cool dwarf hosts monitored by PLATO are precisely the stars for which starspot-induced variability represents a systematic contaminant to planetary transit signals; the starspot demonstration in this work, which quantifies wavelength-dependent flux suppression as a function of spot filling factor and stellar mass, provides the forward-modeling infrastructure needed to separate stellar activity from planetary signatures in PLATO light curves.
+
+The Gaia mission \citep{gaia_edr3_2} has produced parallaxes and multi-band photometry ($G$, $G_{\rm BP}$, $G_{\rm RP}$) for nearly two billion stars, and its upcoming data releases will extend this to radial velocities and variability classifications at population scale.
+Gaia magnitudes are calibrated in the Vega system, and MESA Colors supports this directly via \texttt{mag\_system = `Vega'}; users can substitute Gaia filter transmission curves for any demonstration in this work to produce synthetic $G_{\rm BP} - G_{\rm RP}$ colors on the same system as Gaia DR catalogs, enabling isochrone fitting and population comparisons without external color transformations.
+
+\subsection{Thermal Pulse AGB: Rapid Photometric Evolution}
+\label{sec:demo_tp_agb}
+
+Thermal pulses on the Asymptotic Giant Branch represent periodic thermonuclear runaways in the helium-burning shell, producing dramatic changes in stellar structure over timescales of $\sim$100--1000~years embedded within quiescent interpulse phases lasting $\sim$50,000--100,000~years.
+During each pulse cycle, the helium shell flash drives luminosity increases of factors $\sim$2--10 at the stellar surface, accompanied by radius expansion and effective temperature variations of $\Delta T_{\rm eff} \sim 100$--300~K.
+These structural changes produce measurable photometric signatures: brightness variations of $\Delta V \sim 0.5$--1.5~mag and color excursions of $\Delta(B-V) \sim 0.1$--0.3~mag that trace the thermal response of the deep convective envelope to the underlying nuclear instability.
+
+The rapid development of helium shell flashes presents a challenge for equilibrium mixing-length theory: the flash timescale can be shorter than the convective turnover time in the intershell region, meaning that convection cannot respond instantaneously to the changing thermal structure.
+MESA's Time-Dependent Convection (TDC) treatment \citep{MESAV} addresses this by evolving the convective velocity as a time-dependent quantity rather than assuming instantaneous adjustment to local conditions.
+During thermal pulses, TDC produces quantitatively different surface responses compared to equilibrium MLT--differences that propagate directly into the predicted photometric evolution.
+By enabling MESA Colors during TDC calculations, the photometric consequences of non-equilibrium convection are captured at each timestep without requiring post-processing assumptions about the convective state.
+
+We demonstrate this capability using a $2\,M_\odot$, solar-metallicity model evolved from the pre-main-sequence through core hydrogen and helium burning to the thermally-pulsing AGB.
+The first stage of the calculation (Colors disabled) establishes the stellar structure at the onset of thermal pulses; the second stage continues with \texttt{use\_colors = .true.} and \texttt{history\_interval = 1} to record synthetic photometry at every MESA timestep.
+The Colors module employs Johnson $BVRI$ filters--well-matched to the $\sim$3000--4000~K photospheric temperatures of AGB stars--with BT-Settl atmosphere models providing the spectral energy distribution at each point.
+BT-Settl is chosen over the Kurucz default because AGB photospheric temperatures reach $\sim$3300--3500~K during interpulse minima and cooler still at pulse maximum; Kurucz models are unreliable below $\sim$3500~K, while BT-Settl remains valid across this entire temperature range with correct molecular opacity treatment.
+Timestep controls (\texttt{delta\_lgL\_limit = 0.05}, \texttt{delta\_lgTeff\_limit = 0.01}) ensure that rapid phases of the pulse cycle are finely sampled, typically yielding hundreds of photometric measurements through each flash event.
+
+Figure~\ref{fig:tp_agb_lightcurves} presents a comprehensive view of the TP-AGB photometric evolution across eight complete thermal pulse cycles.
+The top panel traces the internal luminosity components: $\log L_{\rm He}$ spikes by several orders of magnitude at each flash onset, while $\log L_{\rm H}$ and $\log L_{\rm nuc}$ respond on longer timescales, directly connecting the deep nuclear instability to the subsequent surface response.
+The second panel shows the Johnson $BVRI$ synthetic magnitudes overplotted: each pulse produces a rapid brightening of $0.5$--$1.5$~mag followed by a slower return to quiescence, with the amplitude systematically larger in bluer bands reflecting the stronger Wien-regime temperature sensitivity at the $\sim$3000--3500~K photosphere.
+The third panel displays broadband color indices ($B-V$, $V-I$, $V-J$, $V-M$), which trace the chromatic reddening as the star brightens and expands toward each pulse maximum and the subsequent color recovery as the envelope contracts.
+The fourth panel confirms internal consistency of the Colors module: the bolometric magnitude computed directly from the SED integral agrees with the value derived from $\log L$ via $M_{\rm bol} = -4.74 - 2.5\log(L/L_\odot)$ at all phases, validating the photometric pipeline across the full dynamic range of the pulse cycle.
+The lower panels show the corresponding $T_{\rm eff}$ and structural evolution ($\log R$, $\log g$), connecting the photometric response to the underlying stellar structure changes at each timestep.
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig_tpagb_timeseries.pdf}
+\caption{Multi-panel synthetic photometry spanning eight thermal pulse cycles for the $2\,M_\odot$ TP-AGB model. Vertical dotted lines mark identified pulse maxima. From top to bottom: (1)~internal luminosity components ($\log L_{\rm He}$, $\log L_{\rm H}$, $\log L_{\rm nuc}$), showing the helium-shell flash spike at each pulse; (2)~Johnson $BVRI$ synthetic magnitudes overplotted and color-coded by band; (3)~broadband color indices ($B-V$, $V-I$, $V-J$, $V-M$); (4)~bolometric magnitude from the Colors module (solid) compared with the value derived from $\log L$ (dashed), confirming internal consistency of the photometric pipeline; (5)~effective temperature; (6)~$\log R$ (solid) and $\log g$ (dashed). The high-cadence sampling (\texttt{history\_interval = 1}) resolves the rapid rise phase of each pulse that would be under-sampled by post-processing.}
+\label{fig:tp_agb_lightcurves}
+\end{figure}
+
+Figure~\ref{fig:tp_agb_single_pulse} resolves a single thermal pulse in detail, connecting the internal helium-shell diagnostic to the observable $V$-band response and the underlying spectral energy distribution.
+The left column shows $V$-band magnitude (upper) and helium-shell luminosity $\log(L_{\rm He}/L_\odot)$ (lower) versus time measured relative to the onset/knee phase, plotted on a symmetric-log scale that accommodates both the rapid $\sim$1~kyr rise and the $\sim$50~kyr return to quiescence within a single compact axis.
+Four representative phases around the pulse cycle are marked and color-coded consistently across all panels: a Lead-in, the Onset (knee) where $\log L_{\rm He}$ begins its rapid ascent, the Pulse peak, and the Return to quiet as the envelope settles back to interpulse conditions.
+The right panel overlays the emergent BT-Settl SEDs at these four phases on a logarithmic wavelength axis spanning 3000--30{,}000~\AA, with Johnson $BVRI$ filter locations indicated as faint vertical reference lines.
+The four SEDs span a modest $\Delta T_{\rm eff} \approx 100$~K across the pulse cycle; the differences between phases are concentrated at short wavelengths where the Planck function is most temperature-sensitive, making the $B$-band the most photometrically responsive filter during the flash.
+The Return to quiet SED is notably warmer and bluer than the pulse phases, reflecting the post-flash contraction of the envelope and the resulting temperature recovery as the star returns to interpulse conditions.
+The pulse brightening visible in the $V$-band panel is therefore primarily radius-driven rather than temperature-driven: the star reaches $V$ maximum at the Pulse peak through expansion, not heating, a behavior that contrasts with the temperature-dominated photometric response of the RR~Lyrae demonstration in Section~\ref{sec:demo_rsp}.
+
+\begin{figure*}[ht!]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_tpagb_single_pulse.pdf}
+\caption{Phase-resolved view of a single thermal pulse for the $2\,M_\odot$ TP-AGB model.
+\textit{Left column}: $V$-band magnitude (top) and helium-shell luminosity $\log(L_{\rm He}/L_\odot)$ (bottom) versus time relative to the onset/knee phase, on a symmetric-log time axis.
+Four representative phases are marked and color-coded consistently: Lead-in, Onset (knee), Pulse peak, and Return to quiet.
+\textit{Right column}: BT-Settl spectral energy distributions at the four marked phases, overplotted on a logarithmic wavelength axis spanning 3000--30{,}000~\AA.
+Johnson $BVRI$ filter locations are indicated by faint vertical reference lines; legend entries give phase name, $T_{\rm eff}$, and absolute model time in kyr.
+The modest $\Delta T_{\rm eff} \approx 100$~K across the pulse is concentrated in its photometric effect at blue wavelengths; the $V$-band brightening at pulse peak is dominated by radius expansion rather than temperature increase.}
+\label{fig:tp_agb_single_pulse}
+\end{figure*}
+
+These synthetic photometric predictions enable direct comparison with time-domain surveys targeting evolved stars.
+The Vera C.\ Rubin Observatory's Legacy Survey of Space and Time will monitor millions of AGB variables in the Milky Way and Local Group galaxies \citep{LSST}, providing multi-band light curves spanning the $\sim$10-year survey baseline--sufficient to capture one or more thermal pulse events in favorable cases.
+MESA Colors output in survey-matched filter systems (LSST $ugrizy$, available by changing the \texttt{instrument} parameter) enables forward modeling of expected detection rates, light curve morphologies, and color signatures that distinguish thermal pulse events from other forms of AGB variability such as Mira pulsations or dust-formation episodes.
+
+The key demonstration here is that MESA Colors captures rapid photometric evolution during phases where the stellar structure changes faster than typical post-processing sampling intervals.
+The TDC treatment ensures physically consistent convective response during the flash, and the runtime photometry preserves this information without temporal interpolation artifacts.
+For thermal pulses specifically, the $\sim$100-year flash timescale is well-resolved by MESA's adaptive timestepping; the Colors module simply records the photometric state at each step, producing light curves with effective cadences of days to years depending on the evolutionary phase.
+
+% ============================================================================ % Section 4.2: Radial Stellar Pulsations % Drop-in replacement.
+Four figures: % fig_temp_diagnostic, fig_teff_sed, fig_radius_diagnostic, fig_radius_sed % ============================================================================
+
+\subsection{Radial Stellar Pulsations: Validating Colors in a Dynamical Regime}
+\label{sec:demo_rsp}
+
+Classical pulsating variables are an ideal test case for MESA Colors in a time-dependent regime.
+Their multi-band photometric behavior is well understood from decades of ground-based monitoring: the amplitude hierarchy across passbands, the phase offset between short- and long-wavelength light curves, and the relationship between color and the underlying physical variables—temperature and radius—follow directly from the temperature sensitivity of the Planck function and are checkable against observation.
+If Colors coupled to RSP recovers this behavior, it constitutes a genuine, physics-based validation of the module in a context where the stellar state is changing at every timestep and the photometry must respond correctly at each one.
+
+We frame this validation around the Nancy Grace Roman Space Telescope.
+Roman's Wide Field Instrument covers 0.48--2.30~$\mu$m in seven broadband filters (F062 through F213), spanning from the near-optical regime where flux lies near or past the SED peak of an RR~Lyrae star and is strongly temperature-sensitive, to the near-infrared where the Rayleigh-Jeans approximation increasingly holds and the dominant photometric response shifts from temperature to radius.
+This wavelength baseline is sufficient to demonstrate the full physical trend within a single mission filter system, without resorting to a composite Johnson plus 2MASS comparison.
+Roman's Galactic Bulge Time Domain Survey will obtain multi-band light curves for the dense bulge RR~Lyrae population \citep{roman}; the validation presented here is a prerequisite for using Colors output to interpret those data.
+
+\subsubsection{Model Setup}
+\label{sec:rsp_setup}
+
+We compute a fundamental-mode RR~Lyrae model with $M = 0.65\,M_\odot$, $L = 60\,L_\odot$, $T_{\rm eff} = 6500$~K, and $Z = 0.0004$ using MESA's RSP module \citep{MESAV} with \texttt{RSP\_target\_steps\_per\_cycle = 1000} and \texttt{RSP\_max\_dt = 100\,s}.
+At $P \approx 0.71$~days this yields $\sim$1000 history outputs per cycle and an effective photometric cadence of $\sim$60~s.
+The Colors module is configured with Roman WFI filters (F062 through F213), the Kurucz/ATLAS9 atmosphere grid \citep{Castelli04}, and the AB magnitude system, with \texttt{history\_interval = 1} to compute photometry at every RSP timestep.
+All analysis uses a single settled pulsation cycle after the fourth completed period, once transient behavior from the initial velocity kick has subsided.
+
+\subsubsection{Color as a Temperature Thermometer}
+\label{sec:rsp_temp}
+
+The most direct validation test is whether the synthetic color $(F_{062} - F_{184})$ tracks the evolving effective temperature throughout the pulsation cycle.
+Physically, F062 sits near the Wien peak of a $\sim$6500~K stellar SED, where the Planck function's temperature sensitivity $\mathcal{T}(\lambda,T) = xe^x/(e^x-1) - 5$ (with $x \equiv hc/\lambda kT$) is large, while F184 lies well into the Rayleigh-Jeans tail where $\mathcal{T} \approx 1$.
+The color difference therefore amplifies temperature changes: a hotter star emits proportionally more flux at F062 than at F184, driving the color bluer.
+This is a precise, calculable prediction.
+Colors should reproduce it automatically if it is computing SEDs correctly at each timestep.
+
+Figure~\ref{fig:rsp_temp_diagnostic} confirms this.
+The left panel plots the normalized $T_{\rm eff}$ and normalized $(F_{062} - F_{184})$ as functions of pulsation phase over one settled cycle; the two curves trace nearly identical sinusoidal variations in strict antiphase—bluer color corresponds to hotter temperature throughout.
+The Pearson correlation between the un-normalized quantities is $r = -0.999$.
+The right panel shows the scatter of $T_{\rm eff}$ versus color across the full cycle, phase-colored; the points trace a near-perfect linear sequence with negligible loop width, confirming that the color-temperature relationship is tight at every phase, not just at the extremes.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_temp_diagnostic.pdf}
+\caption{Temperature diagnostic in Roman WFI for one settled RR~Lyrae pulsation cycle.
+\textit{Left}: Normalized $T_{\rm eff}$ (black) and normalized $(F_{062} - F_{184})$
+color (red) versus pulsation phase. The two curves are in near-perfect antiphase
+(Pearson $r = -0.999$), confirming that the Colors-computed color tracks the effective
+temperature throughout the pulsation at every RSP timestep.
+\textit{Right}: $T_{\rm eff}$ versus $(F_{062} - F_{184})$, phase-colored. The
+near-linear, loop-free scatter demonstrates that the color is a reliable temperature proxy
+with no phase ambiguity across the cycle.}
+\label{fig:rsp_temp_diagnostic}
+\end{figure*}
+
+Figure~\ref{fig:rsp_teff_sed} shows the mechanism behind this result using the actual MESA Colors atmosphere SEDs written to disk during the run, not a blackbody approximation.
+The left panel shows the $T_{\rm eff}$--color space with the hottest and coldest timesteps marked; the settled cycle spans $T_{\rm eff} = 6502$--$6529$~K, a variation of $\Delta T_{\rm eff} = 27$~K.
+The upper right panel overlays the real interpolated SEDs at these two moments: the hotter SED lies above the cooler one at all wavelengths, but the separation is clearly largest at short wavelengths and converges toward zero in the infrared.
+The lower right panel shows the spectral residual $\Delta F_\lambda = F_{\rm hot} - F_{\rm cold}$, normalized to the peak flux of the hotter model.
+The residual decreases monotonically from its maximum near F062 to near zero at F213, and the filter-integrated values (colored circles at each Roman band's effective wavelength) confirm the hierarchy across all seven filters.
+This is exactly the expected Wien-to-Rayleigh-Jeans behavior: Colors is computing a larger fractional flux response in the temperature-sensitive short-wave filters and a suppressed response in the long-wave filters, consistent with the known wavelength dependence of pulsation amplitudes in RR~Lyrae stars.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_teff_sed.pdf}
+\caption{Temperature variation and spectral residual in Roman WFI, using real MESA Colors
+atmosphere SEDs.
+\textit{Left}: $T_{\rm eff}$ versus $(F_{062} - F_{184})$ color for one settled cycle,
+phase-colored, with the hottest ($T_{\rm eff} = 6529$~K) and coldest ($T_{\rm eff} =
+6502$~K) moments marked.
+\textit{Upper right}: Real interpolated SEDs at these two moments, normalized to the
+peak of the hotter model, with Roman WFI bandpasses shaded.
+\textit{Lower right}: Spectral residual $\Delta F_\lambda = F_{\rm hot} - F_{\rm cold}$.
+The residual decreases monotonically from F062 to F213 (filter-integrated values shown
+as colored circles), demonstrating that Colors correctly concentrates the temperature-driven
+flux difference in the Wien regime and suppresses it toward the Rayleigh-Jeans tail.}
+\label{fig:rsp_teff_sed}
+\end{figure*}
+
+\subsubsection{Radius and the Phase Offset}
+\label{sec:rsp_radius}
+
+The complementary test is whether the color-radius relationship behaves differently from the color-temperature relationship, as it must.
+The color $(F_{062} - F_{184})$ is a temperature proxy; it should \emph{not} track radius directly.
+Instead, the two should be only weakly correlated, and the phase offset between temperature and radius should produce a visible hysteresis loop in color-radius space.
+This phase offset—temperature peaking slightly before the star reaches minimum radius—is one of the most well-established observational properties of RR~Lyrae pulsations, encoding the non-equilibrium thermodynamic state of the pulsating envelope.
+
+Figure~\ref{fig:rsp_radius_diagnostic} confirms the expected behavior.
+The left panel plots normalized radius and normalized $(F_{062} - F_{184})$ versus phase; the color leads the radius by roughly a quarter cycle, and the shapes of the two curves are clearly different.
+The Pearson correlation between the un-normalized quantities is $r = 0.374$, contrasting sharply with the $r = -0.999$ of the temperature-color pair.
+The right panel shows the scatter of radius versus color, phase-colored; the points trace a broad, open loop with distinct ascending and descending branches at the same color value.
+At a given $(F_{062} - F_{184})$ — a given temperature — the star's radius depends on where it is in the cycle, because temperature and radius are varying at different phases.
+Colors reproduces this correctly: the synthetic color is responding to temperature, not radius, at each timestep.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_radius_diagnostic.pdf}
+\caption{Radius diagnostic in Roman WFI for one settled pulsation cycle.
+\textit{Left}: Normalized photospheric radius (black) and normalized $(F_{062} - F_{184})$
+color (red) versus pulsation phase. The color leads the radius, and the Pearson
+correlation between the un-normalized quantities is only $r = 0.374$, contrasting with the
+$r = -0.999$ for the temperature--color pair (Figure~\ref{fig:rsp_temp_diagnostic}).
+\textit{Right}: Radius versus color, phase-colored. The open loop structure, with
+distinct branches at the same color, reflects the phase offset between temperature and
+radius and is a well-established observational signature of RR~Lyrae pulsation dynamics.}
+\label{fig:rsp_radius_diagnostic}
+\end{figure*}
+
+Figure~\ref{fig:rsp_radius_sed} examines the SED at the moments of maximum and minimum radius, and reveals an important physical subtlety.
+The star is most extended near minimum light, when it is also cooling, and most contracted near maximum light, when it is hottest.
+This classic RR~Lyrae phase relation is present in the model: the max-radius timestep has $T_{\rm eff} = 6510$~K while the min-radius timestep, though geometrically smaller, is actually hotter at $T_{\rm eff} = 6520$~K.
+As a consequence the spectral residual $\Delta F_\lambda = F_{\rm max\,R} - F_{\rm min\,R}$ in the lower right panel has a qualitatively different shape from the temperature residual in Figure~\ref{fig:rsp_teff_sed}.
+Rather than decreasing monotonically, it peaks around F087--F106 and shows a sign change at the blue edge, where the $\Delta T = 10$~K temperature disadvantage of the larger star partially counteracts its geometric flux gain.
+In the long-wave filters the larger radius wins and the residual is positive; in the Wien regime the cooler temperature of the max-radius model suppresses the blue flux.
+Colors captures this competition correctly because it evaluates the full interpolated atmosphere SED at the actual $T_{\rm eff}$ and $R$ of each timestep; it is not applying a simple $R^2$ scaling.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_radius_sed.pdf}
+\caption{Radius variation and spectral residual in Roman WFI, using real MESA Colors
+atmosphere SEDs.
+\textit{Left}: Photospheric radius versus $(F_{062} - F_{184})$ color for one settled
+cycle, phase-colored, with the max-radius and min-radius moments marked.
+The max-radius star ($T_{\rm eff} = 6510$~K, $R = 6.094\,R_\odot$) is cooler than the
+min-radius star ($T_{\rm eff} = 6520$~K, $R = 6.066\,R_\odot$), consistent with the
+classic RR~Lyrae phase relation.
+\textit{Upper right}: Real interpolated SEDs at these two moments.
+\textit{Lower right}: Spectral residual $\Delta F_\lambda = F_{\rm max\,R} - F_{\rm
+min\,R}$. Unlike the monotonically decreasing temperature residual, this residual peaks
+at F087--F106 and reverses sign at the blue edge, where the 10~K temperature disadvantage
+of the larger star partially cancels its geometric flux gain. This behavior is reproduced
+because Colors evaluates the full atmosphere SED at the actual $T_{\rm eff}$ and $R$ of
+each timestep rather than applying a simple $R^2$ scaling.}
+\label{fig:rsp_radius_sed}
+\end{figure*}
+
+\subsubsection{Summary}
+\label{sec:rsp_summary}
+
+MESA Colors, when coupled to RSP at $\sim$1000 timesteps per pulsation cycle, recovers the expected wavelength-dependent behavior of RR~Lyrae pulsations in Roman WFI filters.
+The synthetic $(F_{062} - F_{184})$ color tracks $T_{\rm eff}$ with $r = -0.999$, and the spectral residual between the hottest and coldest moments decreases monotonically from F062 to F213, consistent with the Wien-to-Rayleigh-Jeans transition across Roman's wavelength range.
+The color-radius relationship, by contrast, shows the expected phase offset and hysteresis loop, and the spectral residual at max- and min-radius correctly encodes the competition between temperature and geometric effects at each moment.
+These results are obtained from the real interpolated atmosphere SEDs computed at each RSP timestep, validating that Colors is partitioning flux correctly between the temperature and radius contributions throughout a genuinely dynamical nonlinear pulsation calculation and in a filter system directly relevant to an upcoming major survey.
+
+\subsection{Starspots: Chromatic Signatures of Surface Inhomogeneities}
+\label{sec:demo_starspots}
+
+Magnetically active cool stars host dark regions on their photospheres where strong magnetic fields inhibit convective energy transport, producing temperature contrasts of order 10--20\% relative to the surrounding quiet photosphere.
+These starspots modulate stellar brightness in a wavelength-dependent manner: because spots are cooler than their surroundings, they emit less flux at all wavelengths, but the suppression is proportionally stronger at shorter wavelengths where the Planck function's temperature sensitivity is greatest.
+This chromatic signature provides an observable diagnostic of stellar magnetic activity and represents a systematic effect that must be understood when interpreting photometry of cool dwarfs--particularly in the context of exoplanet transit observations, where starspot-crossing events and rotational modulation can mimic or obscure planetary signals.
+
+MESA implements the YREC SPOTS formalism introduced by \citet{Somers2015}, which modifies the atmospheric boundary condition to account for a two-temperature photosphere.
+The spot-modified effective temperature is computed from the areal coverage fraction $f_{\rm spot}$ and the temperature contrast $x_{\rm spot} = T_{\rm spot}/T_{\rm phot}$, producing a flux-weighted mean that enters the Stefan-Boltzmann boundary condition.
+This treatment captures the structural feedback of spot coverage on stellar evolution--spotted stars appear larger and cooler at fixed mass and age compared to unspotted counterparts--while providing the modified $T_{\rm eff}$ that MESA Colors uses for synthetic photometry.
+The atmospheric boundary modification propagates self-consistently through the photometric calculation: the Colors module receives the spot-modified stellar parameters and interpolates the appropriate spectral energy distribution from the atmosphere grid.
+
+For this demonstration we select the BT-Settl atmosphere library \citep{Allard2012} rather than the Kurucz default.
+The choice is scientifically motivated: our grid spans 0.3--1.1\,$\rm M_\odot$, placing the lowest-mass tracks at $T_{\rm eff} \approx 3200$~K on the main sequence, with spot coverage further depressing the flux-weighted effective temperature below this value for large $f_{\rm spot}$.
+Kurucz models are unreliable below $\sim$3500~K; BT-Settl was constructed specifically for cool and ultracool dwarfs and remains accurate across the entire mass range of this grid.
+The LSST $ugrizy$ filter system is adopted as the synthetic instrument, with an AB magnitude zero-point and an output distance of 10~pc yielding absolute magnitudes.
+This choice reflects the observational motivation for the section: the Vera C.\ Rubin Observatory's Legacy Survey of Space and Time \citep{LSST} is the definitive ongoing photometric survey for starspot characterization in cool dwarfs, monitoring millions of M and K dwarfs across six optical bands simultaneously.
+Modeling the expected photometric signatures of spots in the LSST system is therefore a direct use case for MESA Colors in the LSST science era.
+
+The CMD analogue of Figure~15 from \citet{Jermyn2023} is presented in Figure~\ref{fig:starspots_cmd}, showing main-sequence evolutionary tracks for all twenty models in the LSST $(g-r)$ versus $M_g$ plane.
+As in the HRD, color encodes stellar mass (0.3--1.1\,$\rm M_\odot$) and linestyle encodes spot filling factor ($f_{\rm spot} = 0.2$, 0.4, 0.6, 0.8), with $x_{\rm spot} = 0.85$ fixed throughout.
+In the CMD, increasing spot coverage consistently shifts tracks to redder $g-r$ colors and fainter $M_g$ magnitudes at fixed mass and age.
+The separation between tracks of identical mass but different $f_{\rm spot}$ is larger toward bluer colors, reflecting the wavelength-dependent chromatic dimming of the two-temperature photosphere: because spot suppression is proportionally stronger in the $g$ band than in the $r$ band, the $g$-band brightens relative to the $r$-band as spots decrease, simultaneously driving both the $g-r$ reddening and the shift to fainter $M_g$.
+This pattern is qualitatively distinct from the reddening produced by interstellar extinction (which follows a reddening law) or metallicity variations (which shift tracks along different color-magnitude vectors), providing a potential observational handle on spot properties when combined with multi-band photometric monitoring.
+The mass dependence of the spot-induced color shift is also evident: lower-mass stars, which are intrinsically redder and cooler, show larger absolute displacements in $g-r$ for the same $f_{\rm spot}$ increment, consistent with the steeper temperature sensitivity of the Planck function at the cooler photospheric temperatures of M dwarfs.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/starspots_cmd_hr.pdf}
+\caption{CMD analogue of \citet{Jermyn2023} Figure~15, showing LSST $(g-r)$ vs.\ $M_g$ main-sequence evolutionary tracks for a grid of 5 stellar masses and 4 spot filling factors at fixed $x_{\rm spot}=0.85$.
+Color encodes stellar mass; linestyle encodes $f_{\rm spot}$.
+Within each mass cluster, increasing $f_{\rm spot}$ shifts tracks systematically to redder colors and fainter magnitudes.
+The chromatic nature of spot-induced dimming produces CMD displacement vectors distinct from interstellar reddening, enabling multi-band photometric diagnostics of surface magnetic activity.
+}
+\label{fig:starspots_cmd}
+\end{figure*}
+
+These predictions connect directly to the observational programs of current and upcoming photometric surveys.
+The Vera C.\ Rubin Observatory's Legacy Survey of Space and Time will obtain time-series photometry for millions of M~dwarfs in six optical bands \citep{LSST}, enabling statistical characterization of starspot properties through rotational modulation amplitudes and color variations.
+The PLATO mission will monitor hundreds of thousands of cool dwarfs with high-precision photometry for exoplanet detection \citep{plato}, requiring accurate models of stellar variability to distinguish planetary transits from spot-induced signals.
+MESA Colors provides the infrastructure to generate synthetic multi-band photometry for spotted stellar models in survey-specific filter systems, enabling forward modeling of expected variability amplitudes and color signatures as functions of spot coverage, temperature contrast, and stellar parameters.
+
+The demonstration here establishes that MESA's starspot implementation, originally developed for evolutionary studies of radius inflation in active stars, interfaces correctly with the Colors module to produce wavelength-dependent photometric signatures.
+The chromatic effect--stronger dimming in blue bands than red--is a robust prediction of any two-temperature photosphere model and provides an observable diagnostic that can constrain spot properties when combined with multi-band photometric monitoring.
+For the LSST-era characterization of stellar activity in cool dwarfs and exoplanet host stars, this capability enables self-consistent modeling from stellar structure through synthetic observables.
+
+The starspot-induced color shifts quantified here are directly relevant to exoplanet science: when a planet transits a spotted host star, chromatic differences between spot and photosphere temperatures produce wavelength-dependent transit depth variations that can mimic or mask atmospheric features in transmission spectra.
+Forward modeling of these signals in the LSST and PLATO filter systems, using the same spot parameters as the stellar evolution calculation, provides a physically consistent framework for disentangling stellar and planetary contributions to transit photometry.
+
+\subsection{White Dwarfs: Specialized Atmosphere Grids at Extreme Surface Gravity}
+\label{sec:demo_wd}
+
+White dwarf cooling sequences provide fundamental chronometers for stellar populations, with the luminosity function encoding star formation history through the progressive fading of remnants over gigayear timescales.
+Photometric surveys now detect white dwarfs in sufficient numbers that comparison between theoretical cooling tracks and observed color-magnitude distributions has become a primary tool for constraining white dwarf physics.
+The central challenge for synthetic photometry in this regime is not interior physics but atmospheric: the extreme surface gravities of white dwarfs ($\log g \sim 7$--9) place them entirely outside the coverage of general-purpose stellar atmosphere grids.
+Kurucz/ATLAS9 and BT-Settl models, which serve the other demonstrations in this work, terminate near $\log g \approx 5$; applying them to white dwarfs requires extrapolating by several dex in a parameter that directly governs the atmospheric pressure stratification.
+This section demonstrates that MESA Colors handles the grid-substitution problem cleanly: a user-supplied specialized atmosphere grid is swapped in through the \texttt{\&colors} namelist without modifying MESA source code, and the module correctly propagates the resulting SEDs through the photometric pipeline across the full white dwarf cooling sequence.
+
+We initialize a $0.6\,M_\odot$ CO white dwarf from a thermally-settled model and evolve the cooling sequence with \texttt{use\_colors = .true.} and \texttt{history\_interval = 1}, generating LSST $ugrizy$ photometry in the AB system.
+The run spans an initial effective temperature of $\sim$46{,}000~K to $\sim$3{,}900~K over approximately 9.4~Gyr of cooling.
+Rather than the Kurucz grid used for the blue loop demonstration or BT-Settl used for starspots, we specify the \citet{Koester2010} pure-hydrogen (DA) atmosphere grid via the \texttt{stellar\_atm} namelist parameter.
+This grid covers $T_{\rm eff} = 5{,}000$--$80{,}000$~K and $\log g = 6.5$--$9.5$, spanning the full parameter space occupied by hydrogen-atmosphere white dwarf cooling at the surface gravity of this remnant ($\log g \approx 7.9$).
+The substitution requires only a single namelist change; all interpolation, SED convolution, and magnitude computation proceed identically to the other demonstrations.
+
+Figure~\ref{fig:wd_cmd} presents the cooling sequence in the LSST $(g-r)$ versus $M_g$ color-magnitude diagram, colored by $\log_{10}$(cooling age).
+The track spans approximately 8 magnitudes in $M_g$ as the white dwarf fades, with color evolving monotonically from $g-r \approx -0.5$ at high temperatures to $g-r \approx +0.65$ at the cool end.
+This reddening follows directly from the shifting SED peak: at $T_{\rm eff} \gtrsim 20{,}000$~K both $g$ and $r$ filters sample the Rayleigh-Jeans tail and the color is nearly neutral; as the star cools below $\sim$10{,}000~K the peak reddens through the optical and the $g$-band flux drops faster than $r$-band, driving the color redward.
+The smooth, artifact-free morphology of the track in Figure~\ref{fig:wd_cmd} confirms that the Koester grid is being interpolated correctly across the full cooling range.
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=\columnwidth]{figures/wd_cmd.pdf}
+\caption{White dwarf cooling sequence in the LSST $(g-r)$ versus $M_g$ diagram, colored by $\log_{10}$(cooling age / yr).
+The track spans $\sim$8 magnitudes with monotonic reddening from $g-r \approx -0.5$ to $+0.65$, produced by the Koester DA atmosphere grid at $\log g \approx 7.9$ across $T_{\rm eff} \approx 46{,}000$--$3{,}900$~K.
+The smooth morphology confirms artifact-free grid interpolation throughout the cooling sequence.}
+\label{fig:wd_cmd}
+\end{figure}
+
+Figure~\ref{fig:wd_lightcurves} displays the synthetic light curves in all six LSST bands as a function of cooling age.
+All bands fade monotonically, but at strongly wavelength-dependent rates: the $u$ band fades most rapidly in the early hot phase when the SED peak is sweeping through and beyond the ultraviolet, while the redder bands ($r$, $i$, $z$, $y$) fade more slowly and sustain detectable flux to older cooling ages.
+This differential fading is a direct consequence of the Planck function's temperature sensitivity being greatest at short wavelengths: as $T_{\rm eff}$ drops from $\sim$46{,}000~K to $\sim$3{,}900~K, the fractional flux change in $u$ far exceeds that in $y$.
+The strictly chromatic ordering of fading rates confirms that Colors is correctly evaluating the Koester DA SED at each cooling timestep rather than applying a temperature-independent scaling.
+
+Figure~\ref{fig:wd_color_evolution} presents the resulting color-temperature relations for all LSST color combinations, plotted with temperature decreasing rightward to reflect the direction of cooling.
+The curves are lightly smoothed to suppress interpolation steps arising from the finite spacing of the Koester grid; the inflection in $(u-g)$ near $T_{\rm eff} \approx 7{,}000$~K marks a known grid boundary in the Koester DA library and does not reflect a physical discontinuity in the stellar SED.
+Bluer combinations (e.g.\ $u-g$) show steep slopes and therefore greater sensitivity at high temperatures, while redder combinations (e.g.\ $z-y$) provide discrimination at the cool end where $u$ and $g$ photons become scarce.
+These color-temperature relations illustrate the type of forward-model mapping that enables survey-detected white dwarfs to be characterized photometrically without requiring follow-up spectroscopy, provided a grid of models spanning the relevant mass and temperature range is available.
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=\columnwidth]{figures/wd_lightcurves.pdf}
+\caption{Multi-band LSST synthetic magnitudes as a function of cooling age for the $0.6\,M_\odot$ white dwarf.
+All bands fade monotonically; the $u$ band fades most rapidly while redder bands sustain flux to older cooling ages, reflecting the wavelength dependence of Planck function temperature sensitivity.}
+\label{fig:wd_lightcurves}
+\end{figure}
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=\columnwidth]{figures/wd_color_evolution.pdf}
+\caption{LSST color-temperature relations for the DA white dwarf cooling sequence, with temperature decreasing rightward (cooling direction).
+Curves are lightly smoothed to suppress interpolation steps from the finite Koester grid spacing; the inflection in $(u-g)$ near $T_{\rm eff} \approx 7{,}000$~K marks a grid boundary in the Koester DA library rather than a physical feature.
+Bluer combinations are sensitive at high temperatures; redder combinations resolve the cool end.}
+\label{fig:wd_color_evolution}
+\end{figure}
+
+These predictions connect directly to upcoming surveys: Rubin/LSST will detect $10^7$--$10^8$ white dwarfs, enabling luminosity function measurements across the Galaxy \citep{LSST}, while Roman's infrared sensitivity will probe the coolest remnants to constrain thick disk and halo ages \citep{roman}.
+Producing synthetic photometry in the native filter systems of these missions---without intermediate color transformations---is a direct application of the grid-substitution capability demonstrated here.
+
+\subsection{Blue Loops: Large-Amplitude Chromatic Evolution}
+\label{sec:demo_blueloop}
+
+Intermediate-mass stars (3--9\,$M_\odot$) execute dramatic temperature excursions during core helium burning, with blue loops carrying them from $T_{\rm eff} \sim 4300$\,K to $\sim$7700\,K and back at nearly constant luminosity.
+This $\sim$3400\,K temperature swing produces color changes of $\Delta(g-r) \sim 1.0$\,mag---among the largest chromatic variations outside of explosive events---and causes stars to cross the classical Cepheid instability strip multiple times.
+Predicting the multi-band photometry of blue loop stars requires atmosphere interpolation across a wide temperature range at the moderate surface gravities ($\log g \approx 1.4$--2.4) characteristic of evolved giants.
+
+We demonstrate this capability using a 5\,$M_\odot$, $Z = 0.008$ model evolved through core helium burning with \texttt{use\_colors = .true.} and \texttt{history\_interval = 1}.
+The Colors module employs LSST $ugrizy$ filters with Kurucz atmosphere models, testing interpolation across the full blue loop temperature range.
+
+Figure~\ref{fig:blueloop_cmd} presents the CMD evolution in $(g-r)$ versus $g$, revealing the characteristic loop morphology: the star reddens along the RGB, reaches maximum $(g-r) \approx 1.0$ at the tip, executes a rapid blueward excursion during core helium burning, then returns toward the AGB.
+The right panels display the underlying SEDs at three representative phases, showing the dramatic spectral redistribution: at the RGB tip ($T_{\rm eff} = 4352$\,K), flux peaks in the red/infrared; at blue maximum ($T_{\rm eff} = 7711$\,K), the SED shifts blueward with peak flux near 4000\,\AA; on the early AGB ($T_{\rm eff} = 4338$\,K), the spectrum returns to its original shape.
+The LSST filter bandpasses (vertical bands) sample different portions of these evolving SEDs, producing the observed color changes.
+
+\begin{figure*}[ht!]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_blueloop_cmd.pdf}
+\caption{\textit{Left}: Blue loop trajectory in LSST $(g-r)$ versus $g$ for a 5\,$M_\odot$, $Z=0.008$ model, colored by age. The shaded region indicates the instability strip. \textit{Right}: SEDs at three evolutionary phases marked on the CMD, with LSST filter bandpasses indicated by vertical shading. The spectral peak shifts from $\sim$7000\,\AA\ at the RGB tip to $\sim$4000\,\AA\ at blue maximum.}
+\label{fig:blueloop_cmd}
+\end{figure*}
+
+Figure~\ref{fig:blueloop_multiband} shows synthetic light curves in all LSST bands, demonstrating wavelength-dependent amplitude: the $u$-band varies by $\sim$2.5\,mag while the redder bands vary by $\lesssim$0.5\,mag, reflecting the stronger temperature sensitivity of bluer passbands.
+The lower panels display SEDs at three epochs, illustrating how the spectral shape transformation drives the differential photometric response across filters.
+
+\begin{figure*}[ht!]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_blueloop_evolution.pdf}
+\caption{\textit{Top}: Multi-band LSST light curves during blue loop evolution, with vertical lines marking three representative epochs. \textit{Bottom}: SEDs at the marked epochs showing the spectral evolution from red-peaked (entering loop) through blue-peaked (maximum) and back (returning). Filter bandpasses are indicated by vertical shading.}
+\label{fig:blueloop_multiband}
+\end{figure*}
+
+These predictions connect to Roman's resolved stellar populations in nearby galaxies \citep{roman} and LSST's monitoring of Galactic stars crossing the instability strip \citep{LSST}.
+The demonstration establishes that MESA Colors handles large-amplitude chromatic evolution correctly, with smooth interpolation across a $\sim$3400\,K temperature range---the widest single-phase excursion examined in this work.
+
+Blue loops matter because they determine which stars become classical Cepheid pulsators.
+Each crossing of the instability strip—the shaded region in Figure~\ref{fig:blueloop_cmd}—places the star in the regime of radiatively-driven pulsational instability, producing the period-luminosity relation that underpins the extragalactic distance ladder.
+The number of crossings, their duration, and the photometric luminosity at each crossing depend sensitively on mass, metallicity, and internal mixing, meaning that Cepheid population predictions require synthetic photometry computed at the exact timesteps when the model is within the strip.
+With Colors enabled this happens automatically; the strip-crossing photometry is written to \texttt{history.data} as the evolution proceeds, rather than requiring a separate reconstruction pass over the temperature-luminosity history.
+
+Roman's Galactic Bulge Time Domain Survey and resolved stellar population program will obtain multi-band near-infrared light curves for dense fields and Local Group galaxies where Cepheid period-luminosity relations are the primary distance anchor \citep{roman}.
+Producing forward models in Roman filters at native MESA cadence through each instability strip crossing is a direct application of this capability.
+
+\subsection{Starspot Rotational Modulation: Post-Processing the YREC SPOTS Grid}
+\label{sec:demo_yrec}
+
+The preceding starspot demonstration (Section~\ref{sec:demo_starspots}) used MESA's runtime two-temperature boundary condition to produce spot-modified photometry at each evolutionary timestep.
+Here we apply SED\_Tools as a standalone post-processor to the YREC Stellar Parameters of Tracks with Starspots (SPOTS) grid \citep{Somers2020}, demonstrating that the same synthetic photometry infrastructure operates independently of MESA on any external evolutionary calculation.
+The SPOTS grid comprises 150 tracks spanning 13 masses ($0.10$--$1.30\,M_\odot$ in steps of $0.10\,M_\odot$) and six spot covering fractions ($f_{\rm spot} = 0, 0.17, 0.34, 0.51, 0.68, 0.85$) at fixed temperature contrast $x_{\rm spot} = T_{\rm cool}/T_{\rm hot} = 0.80$, computed with the Yale Rotating Evolution Code \citep{vanSaders2013}.
+Each track records $T_{\rm hot}$ and $T_{\rm cool}$ independently at every timestep rather than reporting only the flux-weighted blend.
+SED\_Tools exploits this by running the forward model separately on each component, retaining the full $T_{\rm hot}$ and $T_{\rm cool}$ SEDs at each step; the two spectra are then combined at arbitrary spot visibility fraction to predict the rotationally modulated light curve without any additional stellar modeling.
+Synthetic photometry is computed using the Kurucz/ATLAS9 atmosphere grid with Johnson $UBVRIJ$ filters in the AB system at a reference distance of 10\,pc.
+
+Figure~\ref{fig:yrec_modulation} illustrates the two-component SED approach for a $1.10\,M_\odot$ model near the end of its main-sequence lifetime ($f_{\rm spot} = 0.34$, $x_{\rm spot} = 0.80$).
+The top row shows the stellar disc at three rotational phases: $\phi = 0$ (spot centered on the visible hemisphere), $\phi = 0.17$ (spot midway to the limb), and $\phi = 0.25$ (spot at the limb, projected area zero).
+The middle row displays the corresponding component SEDs: $T_{\rm hot}$ (photosphere, solid orange), $T_{\rm cool}$ (spot, dashed brown), and their visibility-weighted combination (net, black), with Johnson filter pivot wavelengths marked by vertical dotted lines.
+As the spot rotates toward the limb, the net SED converges to the photospheric SED; the convergence is faster at long wavelengths, where the two components differ least, than at short wavelengths, where the Planck function is most sensitive to temperature.
+The bottom row shows synthetic light curves in all six filters: at $\phi = 0$ the $U$-band dimming reaches $\Delta m \approx 0.37$\,mag while the $J$-band reaches only $\approx 0.15$\,mag, a factor of $\sim 2.5$ difference arising entirely from the wavelength dependence of the spot-to-photosphere flux contrast.
+
+Figure~\ref{fig:yrec_amplitude_grid} maps this chromatic dependence across the full grid.
+The upper panel shows $V$-band peak-to-peak amplitude as a function of $f_{\rm spot}$ for the $1.10\,M_\odot$ model at an age of 3\,Gyr; amplitude increases monotonically with $f_{\rm spot}$, reaching $\sim 1.35$\,mag at $f_{\rm spot} = 0.85$.
+The mass dependence arises because higher-mass stars at this age are hotter, placing the $V$-band further into the Wien regime of both components and increasing the flux contrast between $T_{\rm hot}$ and $T_{\rm cool}$ at fixed $x_{\rm spot}$.
+The lowest-mass tracks ($0.50\,M_\odot$) show reduced amplitudes at fixed $f_{\rm spot}$ because $T_{\rm cool} \approx 3120$\,K falls below the Kurucz grid floor ($\sim 3500$\,K), clamping the interpolation and suppressing the apparent contrast; a combined Kurucz+BT-Settl grid would recover the full amplitude for these models.
+The lower panel fixes the mass at $1.10\,M_\odot$ and separates the six Johnson filters: at $f_{\rm spot} = 0.85$ the $U$-band amplitude ($\approx 1.35$\,mag) exceeds the $J$-band ($\approx 0.44$\,mag) by a factor of three, while $V$, $R$, and $I$ fall in between in wavelength order.
+
+These amplitude curves are directly applicable to time-domain surveys monitoring cool dwarfs and exoplanet host stars.
+The Vera C.\ Rubin Observatory's LSST will obtain multi-epoch photometry in six optical bands for millions of active dwarfs \citep{LSST}, and the PLATO mission will monitor cool dwarf exoplanet hosts at high cadence where rotational modulation is a primary systematic \citep{plato}; the amplitude surfaces in Figure~\ref{fig:yrec_amplitude_grid} provide forward-model predictions in the relevant filter systems at the stellar parameters of interest. \citet{Herbert2024} measured peak-to-peak rotational modulation amplitudes in Johnson $V$, $R$, and $I$ for 32 periodic young stellar objects in IC~5070 using the HOYS citizen science dataset \citep{Froebrich2018}, fitting a flux-replacement model to determine spot temperature and covering fraction.
+Their cold-spot solutions span covering fractions $f \approx 0.06$--$0.40$ with temperature contrasts $280$--$2150$\,K below the stellar surface, and their host stars have effective temperatures predominantly in the range $3900$--$4300$\,K --- corresponding to masses of approximately $0.5$--$0.7\,M_\odot$ in our grid at the relevant ages.
+The observed amplitude ordering $A_V > A_R > A_I$ across their sample is directly reproduced by our lower panel of Figure~\ref{fig:yrec_amplitude_grid}, where the same wavelength ordering holds at all covering fractions. \citet{Herbert2024} note explicitly that $V$, $R$, $I$ photometry is insensitive to high-temperature accretion shocks, and that bluer bands would improve spot characterization; the $U$ and $B$ predictions provided here extend their parameter coverage into exactly that regime.
+
+All 150 augmented tracks, including the per-timestep $T_{\rm hot}$ and $T_{\rm cool}$ SEDs, are provided as a data product accompanying this paper\NM{ZENODO}.
+
+\begin{figure*}[ht!]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_yrec_modulation_m110_f034_step00578_lateMS.pdf}
+\caption{
+Rotational modulation of a $1.10\,M_\odot$ main-sequence star with $f_{\rm spot} = 0.34$ and $x_{\rm spot} = 0.80$.
+\textit{Top}: stellar disc at three rotational phases; the spot (dark ellipse) moves from disc center ($\phi = 0$) to the limb ($\phi = 0.25$) and disappears from view.
+\textit{Middle}: photospheric SED ($T_{\rm hot}$, solid orange), spot SED ($T_{\rm cool}$, dashed brown), and their visibility-weighted combination (net, black) at each phase; Johnson filter pivot wavelengths are indicated by vertical dotted lines.
+\textit{Bottom}: synthetic light curves in Johnson $UBVRIJ$ versus rotational phase; vertical dashed lines correspond to the phases shown above.
+The $U$-band amplitude ($\approx 0.37$\,mag) exceeds the $J$-band ($\approx 0.15$\,mag) by a factor of $\sim 2.5$, reflecting the stronger temperature sensitivity of the Planck function at shorter wavelengths.
+}
+\label{fig:yrec_modulation}
+\end{figure*}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig_yrec_amplitude_V_m110_age3.0gyr.pdf}
+\caption{
+Peak-to-peak rotational modulation amplitude as a function of spot covering fraction $f_{\rm spot}$, computed from the YREC SPOTS grid at an age of 3\,Gyr.
+\textit{Top}: $V$-band amplitude for the $1.10\,M_\odot$ model at an age of 3\,Gyr as a function of $f_{\rm spot}$.
+\textit{Bottom}: all six Johnson filters for $M = 1.10\,M_\odot$; the $U$-band amplitude exceeds the $J$-band by a factor of $\sim 3$ at $f_{\rm spot} = 0.85$.
+}
+\label{fig:yrec_amplitude_grid}
+\end{figure}
+
+\section{Limitations, Assumptions, and Usage Guidelines}
+\label{sec:limitations}
+
+The MESA Colors module is designed to provide efficient, reproducible synthetic photometry within the MESA framework.
+As with any post-processing approach, its predictions rely on a set of physical assumptions and numerical limitations that should be kept in mind when interpreting results.
+
+Synthetic magnitudes are computed using pre-computed stellar atmosphere grids that are interpolated in effective temperature, surface gravity, and composition.
+Radiative transfer is not solved during runtime, and the fidelity of the resulting photometry is therefore limited by the coverage and resolution of the adopted atmosphere models.
+Extrapolation beyond the bounds of the available grids is permitted but flagged via the diagnostic quantity \texttt{Interp\_rad}; results obtained under significant extrapolation should be treated with caution.
+
+Distances are assumed to be fixed and user-specified.
+Effects associated with binary orbital motion, time-dependent distance variations, or flux contributions from unresolved companions are not modeled automatically and must be incorporated explicitly by the user if required.
+Similarly, no correction for interstellar extinction or reddening is applied internally.
+Comparisons to observed magnitudes, therefore, require external extinction corrections appropriate to the chosen filters and line of sight.
+The modeling of such perturbations to the light path is planned for a future Colors module update.
+
+Photometric calculations assume idealized filter transmission curves and do not account for time-dependent instrumental effects, detector systematics, or variations in observational throughput.
+Synthetic photometry is evaluated only at points where MESA history output is written, such that the effective temporal resolution is limited by the chosen \texttt{history\_interval}.
+Rapid evolutionary phases or pulsational phenomena may therefore require increased output cadence to ensure adequate temporal sampling.
+
+%The module is intended for use with stellar atmospheres represented in commonly available grids and does not support exotic or poorly characterized regimes (e.g., brown dwarfs or L-type atmospheres).
+Such regimes are explicitly outside the scope of this work.
+
+For reliable use of the MESA Colors module, we recommend that users (i) monitor \texttt{Interp\_rad} to ensure interpolation remains within atmosphere grid boundaries, (ii) verify that selected filters correspond to the observational systems used for comparison, and (iii) adopt a history output cadence that resolves the physical timescales of interest.
+Synthetic photometry produced outside these conditions should be interpreted with appropriate caution.
+
+\section{Conclusions and Future Work}
+\label{sec:conclusions}
+
+% ---- WHAT MESA COLORS IS / DOES ----
+\begin{itemize}
+    \item Computes synthetic multi-band photometry at runtime within MESA — no post-processing step required
+    \item Photometric quantities written directly to \texttt{history.data} at each history-output timestep, temporally aligned with stellar structure by construction
+    \item Configured entirely via a \texttt{\&colors} namelist — atmosphere grid, filter set, magnitude system, distance are all version-controlled alongside the evolution parameters
+    \item Supports AB, Vega, and ST photometric systems; arbitrary filter sets; multiple stellar atmosphere grid families (Kurucz, BT-Settl, Koester DA, TLUSTY, tmap)
+    \item SED\_Tools provided as a companion utility for constructing and validating atmosphere grids in the required format
+\end{itemize}
+
+% ---- DEMONSTRATIONS — parallel structure for each: regime / atmosphere / filters / physical check confirmed / survey relevance ----
+\begin{itemize}
+    \item \textbf{RSP / RR~Lyrae (Roman WFI, Kurucz/ATLAS9, AB):} Synthetic $(F_{062}-F_{184})$ color tracks $T_{\rm eff}$ with Pearson $r = -0.999$ across a full settled pulsation cycle; phase offset and hysteresis loop between color and radius confirmed; spectral residuals between hot/cold and max/min-radius phases reproduce expected Wien-to-Rayleigh-Jeans behavior across all seven Roman bands. Directly relevant to Roman Galactic Bulge Time Domain Survey.
+    \item \textbf{Starspots (LSST $ugrizy$, BT-Settl, AB):} Blue-band flux suppression confirmed to exceed red-band for a two-temperature photosphere; $u$-band dimming exceeds $y$-band by $\sim$0.1~mag for representative spot parameters; CMD displacement vectors from spot coverage are distinct from interstellar reddening vectors. Directly relevant to LSST and PLATO cool-dwarf and exoplanet-host characterization.
+    \item \textbf{White dwarf cooling (LSST $ugrizy$, Koester DA, AB):} Monotonic fading across $\sim$8 magnitudes and correct color evolution from blue to red during cooling confirmed using specialized DA atmosphere grid covering $\log g \sim 6.5$--9.5; wavelength-dependent fading rates reproduce expected temperature evolution. Directly relevant to Rubin/LSST white dwarf luminosity function and Roman infrared cool-remnant programs.
+    \item \textbf{Blue loops (LSST $ugrizy$, Kurucz/ATLAS9, AB):} Smooth atmosphere interpolation confirmed across $\sim$3400~K temperature excursion at moderate $\log g$; $u$-band amplitude exceeds red-band amplitude by factor $\gtrsim 5$; loop morphology in $(g-r)$ vs.\ $g$ CMD reproduced including instability strip crossings. Directly relevant to LSST Cepheid monitoring and Roman resolved stellar populations.
+\end{itemize}
+
+% ---- FUTURE WORK ----
+\begin{itemize}
+    \item \textbf{Interstellar extinction:} Add built-in extinction module with multiple reddening laws and bandpass-dependent corrections; currently must be applied externally
+    \item \textbf{$\alpha$-enhancement and non-solar abundances:} Extend atmosphere grid axis beyond single [M/H] parameter for chemically peculiar and $\alpha$-enhanced populations
+    \item \textbf{Binary systems:} Extend to account for companion flux contributions and binary orbital geometry
+    \item \textbf{Integration with GYRE:} Couple Colors output with GYRE pulsation calculations to produce synthetic photometric amplitudes and phase lags alongside mode frequencies
+    \item \textbf{Uncertainty propagation:} Provide photometric uncertainty estimates derived from \texttt{Interp\_rad} interpolation diagnostics
+    \item \textbf{Observational noise models:} Optional photon noise, sky background, and saturation limits to produce realistic mock survey observations
+\end{itemize}
+
+% ============================================================================ % APPENDICES % ============================================================================ \appendix
+
+\section{Example inlist}
+\label{app:config}
+
+When enabled, the Colors module computes synthetic photometry from the evolving stellar model and writes the resulting magnitudes/colors as additional columns in \texttt{history.data}.
+The only required control is the master switch \texttt{use\_colors = .true.}; the remaining inputs select a filter set, an atmosphere grid, the magnitude system, and (optionally) diagnostic outputs.
+
+A working \texttt{\&colors} block should provide:
+
+\begin{itemize}
+  \item \texttt{use\_colors = .true.} to enable the module.
+  \item \texttt{instrument} as a path to a filter-set directory (e.g., \texttt{/colors/data/filters/Generic/Johnson}).
+  \item \texttt{stellar\_atm} as a path to a packaged atmosphere-grid directory (e.g., \texttt{/colors/data/stellar\_models/combined\_models/}).
+  \item \texttt{distance} in centimeters so geometric dilution and the apparent/absolute magnitude behavior are explicit.
+  \item \texttt{mag\_system} as one of \texttt{'AB'}, \texttt{'ST'}, or \texttt{'Vega'}.
+  \item If \texttt{mag\_system = 'Vega'}, \texttt{vega\_sed} must be provided and must be a two-column wavelength/flux file.
+\end{itemize}
+
+For inspection and debugging, \texttt{colors\_results\_directory} and \texttt{make\_csv} can be enabled to export intermediate products (e.g., the SED and filter-convolved outputs) to disk.
+
+Photometry is exposed through the standard history-column mechanism; consequently, the photometric sampling in \texttt{history.data} follows the cadence at which history output is written (i.e., it is controlled by the run's history output settings such as \texttt{history\_interval}).
+
+\subsection{Working example excerpt}
+
+The following is the \texttt{\&colors} excerpt from the working \texttt{inlist\_colors} example used in the Colors test suite:
+
+\begin{verbatim}
+&colors
+      ! Enable the colors module
+      use_colors = .true.
+
+!
+Filter system specification !
+This points to a directory containing Johnson filter transmission curves. !
+The Johnson directory should contain files like: ! - U.dat, B.dat, V.dat, R.dat, I.dat, J.dat, M.dat (filter transmission curves) instrument = '/colors/data/filters/Generic/Johnson'
+
+!
+Stellar atmosphere model directory !
+Should contain: ! - lookup_table.csv: mapping file with columns for filename, Teff, log_g, metallicity ! - Individual SED files: wavelength vs surface flux for each stellar model ! - flux_cube.bin: pre-computed interpolation grid (if using linear/hermite interpolation) stellar_atm = '/colors/data/stellar_models/combined_models/'
+
+!
+Physical parameters for synthetic photometry distance = 3.0857d19 !
+Distance to star in cm (1 pc = 3.0857e16 m for absolute mags)
+
+!
+Output options colors_results_directory = 'SED' make_csv = .true. !
+Write detailed SED and filter convolution output to disk -- also needed for SED plotting. !
+Creates files like: SED/B_SED.csv, SED/VEGA_B_SED.csv
+
+!zero point.
+Select between: Vega, AB, ST mag_system = 'AB'
+
+!
+Vega spectrum for zero-point calibration !
+This file should contain wavelength (Å) and flux (erg/s/cm²/Å) columns !
+Used to define the zero-point of the magnitude system (Vega = 0.0 mag) vega_sed = '/colors/data/stellar_models/vega_flam.csv'
+
+/ ! end of colors namelist
+\end{verbatim}
+
+\section{Filter file format}
+
+A filter set is specified by the \texttt{instrument} directory.
+The directory must contain an index file whose name matches the directory basename (e.g., \texttt{.../Johnson/Johnson}).
+The index file lists one filter filename per line.
+Each listed file is interpreted as a filter throughput curve.
+
+Each transmission file is read as a two-column table:
+\begin{enumerate}
+  \item wavelength
+  \item dimensionless transmission (throughput)
+\end{enumerate}
+
+The reader discards the first non-comment line in the file (treated as a header) and then parses the remaining lines as numeric wavelength/transmission pairs using list-directed reads.
+In practice, this accepts whitespace-separated columns as well as comma-separated values (as in the provided \texttt{Red.dat} example).
+
+Filter curves should be provided on a monotonic increasing wavelength grid to avoid ambiguous interpolation when mapping the throughput curve onto the SED wavelength grid.
+Transmission values are dimensionless and are typically in the range 0--1.
+
+In the examples distributed with this work, wavelengths are given in Angstroms; filter wavelengths must be consistent with the wavelength units used by the atmosphere spectra (Section~\ref{sec:atm_grid_format}) so that convolution is physically meaningful.
+
+For convenience, history column names are derived from the filter filenames by removing the \texttt{.dat} suffix (more generally: by taking the portion of the filename before the first \texttt{.}).
+
+\section{Atmosphere grid format}
+\label{sec:atm_grid_format}
+
+A packaged atmosphere grid is specified by the \texttt{stellar\_atm} directory.
+The directory must contain a lookup table, \texttt{lookup\_table.csv}, which defines the available grid points and the spectrum filename associated with each grid point.
+
+\subsection{\texttt{lookup\_table.csv}}
+
+The lookup table is comma-separated text with a header row. The required columns are:
+\begin{itemize}
+  \item \texttt{teff}
+  \item \texttt{logg}
+  \item metallicity, provided as either \texttt{meta} or \texttt{feh}
+\end{itemize}
+The first column is interpreted as the spectrum filename for that grid point (relative to the atmosphere directory).
+
+\subsection{Spectrum file format}
+
+Each referenced spectrum file is plain text. Lines beginning with \texttt{\#} may be used for comments/metadata. The reader then discards the first subsequent non-comment line (nominally a header) and reads the remaining lines as two numeric columns:
+\begin{enumerate}
+  \item wavelength
+  \item surface flux density per unit wavelength
+\end{enumerate}
+Values are parsed with list-directed reads.
+
+The provided Kurucz example file (\texttt{Kurucz2003all\_fid16185.txt}) follows this convention by including metadata in \texttt{\#}-prefixed lines and then tabulating wavelength in Angstroms and flux in \texttt{erg\,cm$^{-2}$\,s$^{-1}$\,\AA$^{-1}$}.
+The atmosphere wavelength units must match the filter wavelength units used for throughput curves.
+
+\subsection{Optional precomputed cube: \texttt{flux\_cube.bin}}
+
+For fast interpolation, the atmosphere directory may also include \texttt{flux\_cube.bin}.
+This is a Fortran unformatted stream binary with the following layout:
+
+\begin{itemize}
+  \item 4 integers: \texttt{n\_teff}, \texttt{n\_logg}, \texttt{n\_meta}, \texttt{n\_lambda}
+  \item \texttt{teff\_grid(n\_teff)}
+  \item \texttt{logg\_grid(n\_logg)}
+  \item \texttt{meta\_grid(n\_meta)}
+  \item \texttt{wavelengths(n\_lambda)}
+  \item \texttt{flux\_cube(n\_teff, n\_logg, n\_meta, n\_lambda)}
+\end{itemize}
+
+The cube axes (\texttt{teff\_grid}, \texttt{logg\_grid}, \texttt{meta\_grid}) define the interpolation domain used to construct an SED at arbitrary $(T_{\rm eff}, \log g, \mathrm{[M/H]})$ within the supported parameter volume.
+The wavelength grid in the cube must be consistent with the wavelength conventions used by the filter curves.
+
+\bibliography{bib}{} \bibliographystyle{aasjournalv7}
+
+\end{document}

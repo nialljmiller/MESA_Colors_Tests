@@ -1,0 +1,9 @@
+nmax: 120
+mag_col: K
+best_cycle: 95
+best_period: 0.526768671539422
+best_amp: 0.1460494096813889
+best_score: 1.8580870029197154
+median_amp_last: 0.15727744983142267
+median_period_last: 0.5250679436689438
+max_amp_last: 0.17008207552024612

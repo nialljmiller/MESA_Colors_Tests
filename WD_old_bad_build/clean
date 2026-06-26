@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+rm -rf LOGS* photos* *.mod plots SED
+rm -f *.png *.pdf

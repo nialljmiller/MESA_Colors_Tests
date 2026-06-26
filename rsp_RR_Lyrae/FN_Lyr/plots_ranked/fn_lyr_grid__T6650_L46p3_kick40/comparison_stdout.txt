@@ -1,0 +1,31 @@
+Best absolute-amplitude cycle
+-----------------------------
+MESA mag column:      K
+Observed amp:         1.0508 mag
+Best cycle:           179
+Model amp:            0.8411 mag
+Period estimate:      0.52165 d
+Best phase shift:     0.90080
+Best vertical offset: -1.54407 mag
+RMS residual:         0.07467 mag
+Median abs residual:  0.01666 mag
+Pearson r:            0.97940
+
+Top 10 cycles:
+ cycle  period_est  amp_model      rms      mae     corr  vmax_cs    score
+   179    0.521654   0.841084 0.074667 0.016659 0.979400 6.696973 0.123720
+   178    0.522133   0.841026 0.074679 0.016665 0.979399 6.696684 0.123745
+   177    0.522186   0.840976 0.074692 0.016686 0.979393 6.696328 0.123770
+   176    0.521587   0.840919 0.074710 0.016683 0.979389 6.695932 0.123802
+   175    0.522179   0.840861 0.074721 0.016699 0.979387 6.695620 0.123828
+   174    0.521644   0.840799 0.074741 0.016705 0.979381 6.695186 0.123862
+   173    0.522132   0.840737 0.074755 0.016726 0.979379 6.694863 0.123891
+   172    0.522027   0.840680 0.074772 0.016770 0.979374 6.694383 0.123922
+   171    0.521656   0.840615 0.074791 0.016770 0.979369 6.694022 0.123956
+   170    0.522175   0.840550 0.074806 0.016779 0.979367 6.693680 0.123987
+
+Wrote:
+  FN_Lyr_cycle_scores_absolute.csv
+  FN_Lyr_MESA_vs_Kepler_absolute_2phase.png
+  FN_Lyr_MESA_vs_Kepler_absolute_residuals.png
+  FN_Lyr_MESA_vs_Kepler_absolute_comparison.csv

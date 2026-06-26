@@ -1,0 +1,33 @@
+# latexindent-sentences.yaml
+
+modifyLineBreaks:
+  preserveBlankLines: 1
+  condenseMultipleBlankLinesInto: 1
+
+  oneSentencePerLine:
+    manipulateSentences: 1
+    removeSentenceLineBreaks: 1
+    multipleSpacesToSingle: 1
+    textWrapSentences: 0
+    sentenceIndent: ""
+
+    sentencesFollow:
+      par: 1
+      blankLine: 1
+      fullStop: 1
+      exclamationMark: 1
+      questionMark: 1
+      rightBrace: 1
+      commentOnPreviousLine: 1
+
+    sentencesBeginWith:
+      A-Z: 1
+      a-z: 1
+
+    sentencesEndWith:
+      betterFullStop: 1
+      exclamationMark: 1
+      questionMark: 1
+
+    sentencesDoNOTcontain:
+      other: \\begin|\\end|\\includegraphics|\\label|\\ref|\\cite|\\url|\\href

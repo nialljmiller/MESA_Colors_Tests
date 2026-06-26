@@ -1,0 +1,182 @@
+! RR Lyrae model for demonstrating MESA Colors with RSP
+! Captures phase-resolved synthetic photometry at native RSP timestep resolution
+!
+! Reference model: M=0.65 Msun, L=60 Lsun, Teff=6500 K, Z=0.0004
+! Expected period: ~0.71 days (fundamental mode)
+!
+! Filter system: Nancy Grace Roman Space Telescope Wide Field Instrument (WFI)
+!   F062, F087, F106, F129, F158, F184, F213
+!   Wavelength coverage: 0.48–2.30 um
+!   Magnitude system: AB (standard for Roman)
+!
+! For MESA Colors paper Section: Radial Stellar Pulsations
+
+&star_job
+
+      show_log_description_at_start = .false.
+   create_RSP_model = .true.
+   load_saved_model = .false.
+
+      save_model_when_terminate = .true.
+      save_model_filename = 'final.mod'
+
+      initial_zfracs = 6
+
+      set_initial_age = .true.
+      initial_age = 0
+
+      set_initial_model_number = .true.
+      initial_model_number = 0
+
+      set_initial_cumulative_energy_error = .true.
+      new_cumulative_energy_error = 0d0
+
+/ ! end of star_job namelist
+
+&eos
+/ ! end of eos namelist
+
+
+&kap
+      Zbase = 0.0004d0
+
+      kap_file_prefix = 'a09'
+      kap_lowT_prefix = 'lowT_fa05_a09p'
+      kap_CO_prefix = 'a09_co'
+
+/ ! end of kap namelist
+
+
+&controls
+
+   ! ============================================================
+   ! RUN CONTROLS
+   ! ============================================================
+   ! Run for ~15 complete pulsation cycles to demonstrate variability.
+   ! With ~1000 steps/cycle this is ~15000 models.
+   max_model_number = 260000
+   use_gold2_tolerances = .true.
+
+   ! ============================================================
+   ! RSP STELLAR PARAMETERS — RR Lyrae (fundamental mode)
+   ! ============================================================
+   ! Classic RR Lyrae: well-documented, ~0.71 day period.
+   RSP_mass = 0.65d0
+   RSP_Teff = 6550d0
+   RSP_L = 43.6d0
+   RSP_X = 0.75d0
+   RSP_Z = 0.0004d0
+
+   ! Check period matches expected value
+   x_integer_ctrl(1) = 180   ! which period to check
+   x_ctrl(1) = 0.527398471d0    ! observed FN Lyr period
+
+   ! ============================================================
+   ! TEMPORAL RESOLUTION — CRITICAL FOR COLORS DEMONSTRATION
+   ! ============================================================
+   ! Target ~1000 timesteps per pulsation cycle.
+   ! For P~0.71 day this gives dt ~ 60 seconds.
+   RSP_target_steps_per_cycle = 1000
+
+   ! Cap maximum timestep at 100 seconds for smooth sampling.
+   RSP_max_dt = 50d0
+
+   ! Initial velocity kick to excite pulsations
+   RSP_kick_vsurf_km_per_sec = 20d0
+
+   ! ============================================================
+   ! OUTPUT CONTROLS — CAPTURE EVERY TIMESTEP
+   ! ============================================================
+   ! CRITICAL: history_interval = 1 ensures Colors computed at every RSP step,
+   ! giving ~1000 synthetic magnitude measurements per 0.71-day pulsation cycle.
+   history_interval = 1
+
+   ! Reduce other output to manage file sizes.
+   photo_interval = 5000
+   profile_interval = 5000
+   terminal_interval = 500
+
+   ! Terminal display settings
+   terminal_show_age_units = 'days'
+   terminal_show_timestep_units = 'secs'
+   terminal_show_log_dt = .false.
+   terminal_show_log_age = .false.
+
+   ! Trace energy conservation
+   trace_history_value_name(1) = 'rel_E_err'
+   trace_history_value_name(2) = 'log_rel_run_E_err'
+
+/ ! end of controls namelist
+
+
+&pgstar
+
+      pgstar_interval = 20
+
+      Grid2_win_flag = .true.
+      Grid2_title = '0.65 M\d\(2281)\u  Z=0.0004  RR Lyrae + Colors (Roman WFI)'
+
+      History_Panels1_xaxis_name = 'star_age_day'
+      History_Panels1_max_width = 5  ! Show ~5 days (~7 cycles)
+
+      file_digits = 7
+      Grid2_file_dir = 'png'
+      Grid2_file_prefix = 'grid'
+      Grid2_file_interval = 500
+
+      Profile_Panels1_xaxis_name = 'logtau'
+      Profile_Panels1_xaxis_reversed = .true.
+      Profile_Panels1_xmin = -101D0
+      Profile_Panels1_xmax = -101D0
+
+      Profile_Panels1_dymin(4) = 0.02
+
+/ ! end of pgstar namelist
+
+
+&colors
+
+   ! ============================================================
+   ! MESA COLORS MODULE — Roman WFI Synthetic Photometry
+   ! ============================================================
+   ! Computes synthetic magnitudes in all seven Roman WFI broadband filters
+   ! at every history output (every RSP timestep), giving ~1000 photometric
+   ! measurements per 0.71-day pulsation cycle — exceeding the cadence of
+   ! any existing ground-based survey of RR Lyrae stars.
+
+   use_colors = .true.
+
+   ! Roman Space Telescope Wide Field Instrument filter system.
+   ! Seven broadband filters spanning 0.48–2.30 um:
+   !   F062 (0.48–0.76 um)   F087 (0.76–1.00 um)   F106 (0.93–1.19 um)
+   !   F129 (1.15–1.45 um)   F158 (1.38–1.77 um)   F184 (1.68–2.00 um)
+   !   F213 (1.95–2.30 um)
+   instrument = 'data/colors_data/filters/Kepler/Kepler'
+
+   ! AB magnitude system — standard for Roman photometry.
+   mag_system = 'AB'
+
+   ! Vega reference spectrum required even when mag_system = 'AB'
+   ! (used internally for bolometric zero-point; the AB mags are computed
+   ! from the flat F_nu=3631 Jy reference regardless).
+   vega_sed = 'data/colors_data/stellar_models/vega_flam.csv'
+
+   ! Stellar atmosphere models for SED interpolation.
+   ! Kurucz/ATLAS9 grid covers 3500–50000 K, log g = 0–5, [M/H] = -5 to +1.
+   ! RR Lyrae Teff range (~5800–7500 K) is well within the grid interior.
+   stellar_atm = 'data/colors_data/stellar_models/Kurucz2003all/'
+
+   ! Distance: 10 pc = 3.0857e19 cm → absolute magnitudes.
+   ! Roman Galactic Bulge Time Domain Survey targets at ~8 kpc; users may
+   ! set distance = 2.47d22 for apparent magnitudes at that distance.
+   distance = 3.0857d19
+
+   ! Diagnostic outputs: write per-model SED CSVs to SED/.
+   ! These are used by plot_rsp_roman.py for the SED snapshot figure.
+   colors_results_directory = 'SED'
+   make_csv = .false.
+   sed_per_model = .false.
+
+
+/ ! end of colors namelist
+

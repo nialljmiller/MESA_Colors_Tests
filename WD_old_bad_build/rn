@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+# this provides the definition of do_one (run one part of test)
+# do_one [inlist] [output model] [LOGS directory]
+source "${MESA_DIR}/star/test_suite/test_suite_helpers"
+
+date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S"
+
+echo ''
+echo '==================================================='
+echo 'Stage 1: Evolving 1 Msun from pre-MS to WD'
+echo '==================================================='
+echo ''
+
+do_one inlist_to_wd wd_start.mod LOGS_progenitor
+
+echo ''
+echo '==================================================='
+echo 'Stage 2: WD Cooling Sequence with MESA Colors'
+echo '==================================================='
+echo ''
+
+do_one inlist_cool_wd wd_cooled.mod LOGS
+
+date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S"
+
+echo ''
+echo 'Finished all stages'
+echo ''

@@ -4,21 +4,16 @@ source "${MESA_DIR}/star/test_suite/test_suite_helpers"
 
 date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S"
 
-if [ -n "$MESA_SKIP_OPTIONAL" ]; then
-   echo "Skipping progenitor stage; using saved 0.6 Msun WD model"
-   mkdir -p saved_models
-   if [ ! -f saved_models/co_wd_settled_0p6M_from_mesa_test_suite.mod ]; then
-      cp "$MESA_DIR/star/test_suite/wd_cool_0.6M/co_wd_settled.mod" saved_models/co_wd_settled_0p6M_from_mesa_test_suite.mod
-   fi
-   cp saved_models/co_wd_settled_0p6M_from_mesa_test_suite.mod wd_start.mod
+if [ -f wd_start.mod ]; then
+   echo "Found wd_start.mod; running WD cooling stage"
+   do_one inlist_cool_wd wd_cooled.mod LOGS_wd_cool
 else
-   echo "Running full progenitor stage"
+   echo "No wd_start.mod found; running progenitor stage"
    do_one inlist_to_wd wd_start.mod LOGS_progenitor
+
+   echo "Running WD cooling stage"
+   do_one inlist_cool_wd wd_cooled.mod LOGS_wd_cool
 fi
 
-echo "Running WD cooling stage"
-do_one inlist_cool_wd wd_cooled.mod LOGS_wd_cool
-
 date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S"
-
 echo 'finished'

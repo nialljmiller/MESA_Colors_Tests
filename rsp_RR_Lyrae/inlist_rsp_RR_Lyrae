@@ -54,7 +54,7 @@
    ! ============================================================
    ! Run for ~15 complete pulsation cycles to demonstrate variability.
    ! With ~1000 steps/cycle this is ~15000 models.
-   max_model_number = 200000
+   max_model_number = 4000000
    use_gold2_tolerances = .true.
 
    ! ============================================================
@@ -62,13 +62,13 @@
    ! ============================================================
    ! Classic RR Lyrae: well-documented, ~0.71 day period.
    RSP_mass = 0.65d0
-   RSP_Teff = 6500d0
-   RSP_L = 60d0
+   RSP_Teff = 6600d0
+   RSP_L = 50d0
    RSP_X = 0.75d0
    RSP_Z = 0.0004d0
 
    ! Check period matches expected value
-   x_integer_ctrl(1) = 10   ! which period to check
+   x_integer_ctrl(1) = 20000   ! which period to check
    x_ctrl(1) = 0.71262d0    ! expected period (days)
 
    ! ============================================================
@@ -82,7 +82,7 @@
    RSP_max_dt = 100d0
 
    ! Initial velocity kick to excite pulsations
-   RSP_kick_vsurf_km_per_sec = 1.0d0
+   RSP_kick_vsurf_km_per_sec = 20.0d0
 
    ! ============================================================
    ! OUTPUT CONTROLS — CAPTURE EVERY TIMESTEP
@@ -110,26 +110,6 @@
 
 
 &pgstar
-
-      pgstar_interval = 20
-
-      Grid2_win_flag = .true.
-      Grid2_title = '0.65 M\d\(2281)\u  Z=0.0004  RR Lyrae + Colors (Roman WFI)'
-
-      History_Panels1_xaxis_name = 'star_age_day'
-      History_Panels1_max_width = 5  ! Show ~5 days (~7 cycles)
-
-      file_digits = 7
-      Grid2_file_dir = 'png'
-      Grid2_file_prefix = 'grid'
-      Grid2_file_interval = 500
-
-      Profile_Panels1_xaxis_name = 'logtau'
-      Profile_Panels1_xaxis_reversed = .true.
-      Profile_Panels1_xmin = -101D0
-      Profile_Panels1_xmax = -101D0
-
-      Profile_Panels1_dymin(4) = 0.02
 
 / ! end of pgstar namelist
 

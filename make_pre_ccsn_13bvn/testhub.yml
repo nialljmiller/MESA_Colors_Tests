@@ -185,3 +185,45 @@
       solver_calls_made:          999
       solver_calls_failed:          173
       solver_iterations:         9864
+    - inlist: inlist_to_cc_header
+    - inlist: inlist_to_cc_header
+    - inlist: inlist_to_cc_header
+    - inlist: inlist_to_cc_header
+    - inlist: inlist_to_cc_header
+    - inlist: inlist_to_cc_header
+      runtime_minutes:  56.82
+      model_number:         5121
+      star_age:     1.7935936398953080E+07
+      num_retries:          174
+      log_rel_run_E_err:        -4.3906668254186849
+      steps:          826
+      retries:          173
+      redos:            0
+      solver_calls_made:          999
+      solver_calls_failed:          173
+      solver_iterations:         9864
+    - inlist: inlist_to_post_si_burn_header
+    - inlist: inlist_to_post_si_burn_header
+      runtime_minutes:  74.30
+      model_number:         4296
+      star_age:     1.7935936395182934E+07
+      num_retries:          206
+      log_rel_run_E_err:        -4.5070928662208427
+      steps:         2690
+      retries:          206
+      redos:            0
+      solver_calls_made:         2896
+      solver_calls_failed:          206
+      solver_iterations:        22042
+    - inlist: inlist_to_cc_header
+      runtime_minutes:  40.93
+      model_number:         5121
+      star_age:     1.7935936398953080E+07
+      num_retries:          174
+      log_rel_run_E_err:        -4.3906668254186849
+      steps:          826
+      retries:          173
+      redos:            0
+      solver_calls_made:          999
+      solver_calls_failed:          173
+      solver_iterations:         9864

@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+# Check if run completed successfully
+
+if [ -f final.mod ]; then
+    echo "SUCCESS: final.mod exists"
+    
+    if [ -d LOGS ]; then
+        if grep -q "Mag_bol" LOGS/history.data 2>/dev/null; then
+            echo "SUCCESS: Colors output found in history.data"
+        else
+            echo "WARNING: Colors output not found in history.data"
+        fi
+    fi
+else
+    echo "FAILURE: final.mod not found"
+    exit 1
+fi

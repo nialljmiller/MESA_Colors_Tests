@@ -16,49 +16,69 @@
       initial_model_number = 0
 
       set_initial_dt = .true.
-      years_for_initial_dt = 1d2
-
-      pgstar_flag = .false.
+      years_for_initial_dt = 1d1
 /
 
 &eos
       use_Skye = .true.
       use_PC = .false.
-      Skye_solid_mixing_rule = "Ogata"
+      Skye_solid_mixing_rule = 'Ogata'
 /
 
 &kap
       Zbase = 0.02d0
       kap_file_prefix = 'gs98'
+      kap_lowT_prefix = 'lowT_fa05_gs98'
       use_Type2_opacities = .true.
 /
 
 &colors
       use_colors = .true.
-            stellar_atm = 'data/colors_data/stellar_models/koester2/'
-            instrument = 'data/colors_data/filters/LSST/LSST'
+      stellar_atm = '/home/njm/SED_Tools/data/stellar_models/koester2'
+      instrument = '/home/njm/SED_Tools/data/filters/LSST/LSST'
       distance = 3.0857d19
       mag_system = 'AB'
+      colors_results_directory = 'SED'
       make_csv = .true.
+      sed_per_model = .true.
 /
 
 &controls
       log_center_temp_lower_limit = 6d0
+      max_model_number = 200000
 
       energy_eqn_option = 'eps_grav'
+      include_composition_in_eps_grav = .true.
       use_time_centered_eps_grav = .true.
 
       atm_option = 'table'
       atm_table = 'WD_tau_25'
+      atm_off_table_option = 'T_tau'
 
       use_gold2_tolerances = .true.
 
       do_element_diffusion = .true.
       diffusion_use_full_net = .true.
+      diffusion_use_caplan = .true.
+      diffusion_use_cgs_solver = .true.
 
-      mesh_delta_coeff = 0.75
+      do_WD_sedimentation_heating = .true.
+      min_xa_for_WD_sedimentation_heating = 1d-5
+      do_diffusion_heating = .false.
+
+      do_phase_separation = .true.
+      phase_separation_option = 'CO'
+      do_phase_separation_heating = .true.
+      phase_separation_mixing_use_brunt = .true.
+
+      mesh_delta_coeff = 0.50d0
+      time_delta_coeff = 0.50d0
+      max_timestep_factor = 1.10d0
+      min_timestep_limit = 0d0
+      max_number_retries = 1000
+
       MLT_option = 'ML2'
-      mixing_length_alpha = 1.8
+      mixing_length_alpha = 1.8d0
 
       history_interval = 1
       profile_interval = 50
@@ -66,7 +86,3 @@
       photo_interval = 100
       photo_digits = 6
 /
-
-&pgstar
-/
-

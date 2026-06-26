@@ -1,7 +1,7 @@
-.. _make_pre_ccsn_13bvn:
+.. _make_pre_ccsn_tlusty_mergedbin:
 
 *******************
-make_pre_ccsn_13bvn
+make_pre_ccsn_tlusty_mergedbin
 *******************
 
 This test suite evolves a solar metalicity 12 |MSun| model from the pre-ms to helium depletion, strips the hydrogen envelope, and then evolves to core collapse.
