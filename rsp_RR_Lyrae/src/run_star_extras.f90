@@ -1,19 +1,6 @@
 ! ***********************************************************************
 !
-!   Copyright (C) 2018-2019  The MESA Team
-!
-!   This program is free software: you can redistribute it and/or modify
-!   it under the terms of the GNU Lesser General Public License
-!   as published by the Free Software Foundation,
-!   either version 3 of the License, or (at your option) any later version.
-!
-!   This program is distributed in the hope that it will be useful,
-!   but WITHOUT ANY WARRANTY; without even the implied warranty of
-!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-!   See the GNU Lesser General Public License for more details.
-!
-!   You should have received a copy of the GNU Lesser General Public License
-!   along with this program. If not, see <https://www.gnu.org/licenses/>.
+!   Copyright (C) 2018-2019 The MESA Team
 !
 ! ***********************************************************************
 
@@ -28,11 +15,20 @@ module run_star_extras
       implicit none
 
       include "test_suite_extras_def.inc"
+
       logical :: need_to_write_LINA_data
+
+      integer, parameter :: mode_settle = 1
+      integer, parameter :: mode_colors = 2
+
+      integer :: last_checked_period = -1
+      integer :: stable_period_count = 0
+      integer :: colors_start_period = -1
 
       contains
 
       include "test_suite_extras.inc"
+
 
       subroutine extras_controls(id, ierr)
          integer, intent(in) :: id
@@ -61,10 +57,17 @@ module run_star_extras
          ierr = 0
          call star_ptr(id, s, ierr)
          if (ierr /= 0) return
+
          call test_suite_startup(s, restart, ierr)
+         if (ierr /= 0) return
+
+         last_checked_period = -1
+         stable_period_count = 0
+         colors_start_period = -1
+
          if (.not. restart) then
             need_to_write_LINA_data = len_trim(s% x_character_ctrl(10)) > 0
-         else  ! it is a restart
+         else
             need_to_write_LINA_data = .false.
          end if
       end subroutine extras_startup
@@ -78,6 +81,7 @@ module run_star_extras
          call star_ptr(id, s, ierr)
          if (ierr /= 0) return
          extras_start_step = keep_going
+
          if (need_to_write_LINA_data) then
             io = 61
             open(io,file=trim(s% x_character_ctrl(10)),status='unknown')
@@ -90,46 +94,122 @@ module run_star_extras
       end function extras_start_step
 
 
-      ! returns either keep_going or terminate.
       integer function extras_finish_step(id)
          integer, intent(in) :: id
-         integer :: ierr
-         real(dp) :: target_period, rel_run_E_err
+         integer :: ierr, mode, min_periods, required_stable_periods
+         integer :: max_settle_periods, target_color_periods
+         integer :: nperiod, rel_period
+         real(dp) :: grekm_tol, grekm_abs, rel_run_E_err
          type (star_info), pointer :: s
+
          ierr = 0
          call star_ptr(id, s, ierr)
          if (ierr /= 0) return
          extras_finish_step = keep_going
-         if (s% x_integer_ctrl(1) <= 0) return
-         if (s% rsp_num_periods < s% x_integer_ctrl(1)) return
-         write(*,'(A)')
-         write(*,'(A)')
-         write(*,'(A)')
-         target_period = s% x_ctrl(1)
-         rel_run_E_err = s% cumulative_energy_error/s% total_energy
-         write(*,*) 'rel_run_E_err', rel_run_E_err
-         if (s% total_energy /= 0d0 .and. abs(rel_run_E_err) > 1d-5) then
-            write(*,*) '*** BAD rel_run_E_error ***', &
-            s% cumulative_energy_error/s% total_energy
-         else if (abs(s% rsp_period/(24*3600) - target_period) > 1d-2) then
-            write(*,*) '*** BAD ***', s% rsp_period/(24*3600) - target_period, &
-               s% rsp_period/(24*3600), target_period
-         else
-            write(*,*) 'good match for period', &
-               s% rsp_period/(24*3600), target_period
-         end if
-         write(*,'(A)')
-         write(*,'(A)')
-         write(*,'(A)')
-         extras_finish_step = terminate
+
+         mode = s% x_integer_ctrl(1)
+         nperiod = s% rsp_num_periods
+
+         select case (mode)
+
+         case (mode_settle)
+            min_periods = max(0, s% x_integer_ctrl(2))
+            required_stable_periods = max(1, s% x_integer_ctrl(3))
+            max_settle_periods = max(min_periods, s% x_integer_ctrl(4))
+            grekm_tol = s% x_ctrl(2)
+            if (grekm_tol <= 0d0) grekm_tol = 1d-3
+
+            ! Only check once per completed pulsation period.
+            if (nperiod <= last_checked_period) return
+            last_checked_period = nperiod
+
+            if (nperiod < min_periods) then
+               if (mod(nperiod, 25) == 0) then
+                  write(*,'(A,I0,A,I0)') 'settling RSP: period ', nperiod, &
+                     ' of minimum ', min_periods
+               end if
+               return
+            end if
+
+            grekm_abs = abs(s% rsp_GREKM)
+            if (grekm_abs <= grekm_tol) then
+               stable_period_count = stable_period_count + 1
+            else
+               stable_period_count = 0
+            end if
+
+            write(*,'(A,I0,A,1PE12.4,A,I0,A,I0)') 'settle check: period ', nperiod, &
+               ' abs(rsp_GREKM)=', grekm_abs, ' stable_count=', &
+               stable_period_count, '/', required_stable_periods
+
+            if (stable_period_count >= required_stable_periods) then
+               call report_energy_error(s)
+               write(*,'(A)') 'RSP settling criterion satisfied; saving settled.mod and terminating stage 1.'
+               extras_finish_step = terminate
+               return
+            end if
+
+            if (max_settle_periods > 0 .and. nperiod >= max_settle_periods) then
+               call report_energy_error(s)
+               write(*,'(A,I0,A)') 'WARNING: reached maximum settling period ', &
+                  max_settle_periods, ' before satisfying stability criterion.'
+               write(*,'(A)') 'Saving current model as settled.mod anyway so stage 2 can proceed.'
+               extras_finish_step = terminate
+               return
+            end if
+
+         case (mode_colors)
+            target_color_periods = max(1, s% x_integer_ctrl(5))
+
+            if (colors_start_period < 0) then
+               colors_start_period = nperiod
+               write(*,'(A,I0,A,I0,A)') 'Colors stage starts at completed period ', &
+                  colors_start_period, '; target is +', target_color_periods, ' periods.'
+               return
+            end if
+
+            rel_period = nperiod - colors_start_period
+            if (nperiod > last_checked_period) then
+               last_checked_period = nperiod
+               if (mod(rel_period, 10) == 0) then
+                  write(*,'(A,I0,A,I0)') 'Colors production: completed additional periods ', &
+                     rel_period, '/', target_color_periods
+               end if
+            end if
+
+            if (rel_period >= target_color_periods) then
+               call report_energy_error(s)
+               write(*,'(A,I0,A)') 'Completed Colors production run of ', &
+                  target_color_periods, ' additional periods; saving colors_final.mod.'
+               extras_finish_step = terminate
+               return
+            end if
+
+         case default
+            ! No custom termination mode requested.
+            return
+
+         end select
       end function extras_finish_step
+
+
+      subroutine report_energy_error(s)
+         type (star_info), pointer :: s
+         real(dp) :: rel_run_E_err
+         if (s% total_energy /= 0d0) then
+            rel_run_E_err = s% cumulative_energy_error/s% total_energy
+            write(*,*) 'rel_run_E_err', rel_run_E_err
+            if (abs(rel_run_E_err) > 1d-5) then
+               write(*,*) '*** WARNING: large rel_run_E_error ***', rel_run_E_err
+            end if
+         end if
+      end subroutine report_energy_error
 
 
       subroutine extras_after_evolve(id, ierr)
          integer, intent(in) :: id
          integer, intent(out) :: ierr
          type (star_info), pointer :: s
-         real(dp) :: dt
          ierr = 0
          call star_ptr(id, s, ierr)
          if (ierr /= 0) return
@@ -137,7 +217,6 @@ module run_star_extras
       end subroutine extras_after_evolve
 
 
-      ! returns either keep_going, retry, or terminate.
       integer function extras_check_model(id)
          integer, intent(in) :: id
          integer :: ierr
@@ -192,10 +271,9 @@ module run_star_extras
          real(dp) :: vals(nz,n)
          integer, intent(out) :: ierr
          type (star_info), pointer :: s
-         integer :: k
          ierr = 0
          call star_ptr(id, s, ierr)
          if (ierr /= 0) return
       end subroutine data_for_extra_profile_columns
 
-      end module run_star_extras
+end module run_star_extras
