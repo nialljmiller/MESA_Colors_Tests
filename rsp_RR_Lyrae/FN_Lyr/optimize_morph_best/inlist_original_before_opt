@@ -62,15 +62,14 @@
    ! ============================================================
    ! Classic RR Lyrae: well-documented, ~0.71 day period.
    RSP_mass = 0.6500d0
-   RSP_Teff = 6728.50d0
-   RSP_L = 49.0954d0
+   RSP_Teff = 6700.00d0
+   RSP_L = 47.7000d0
    RSP_X = 0.75d0
    RSP_Z = 0.0004d0
-   RSP_alfam = 0.15240d0
+   RSP_alfam = 0.15000d0
    RSP_alfat = 0.0d0
    RSP_gammar = 0.0d0
-   RSP_cq = 4.0000d0
-      RSP_zsh = 0.10000d0
+   RSP_cq = 6.0000d0
 
    ! Check period matches expected value
    x_integer_ctrl(1) = 150

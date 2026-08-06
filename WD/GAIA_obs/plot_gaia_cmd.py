@@ -10,6 +10,10 @@ from matplotlib.colors import LogNorm
 from matplotlib.patches import Rectangle
 from matplotlib.gridspec import GridSpec
 
+# ApJ requires embedded Type 42 (TrueType) fonts, not Type 3 bitmaps.
+plt.rcParams["pdf.fonttype"] = 42
+plt.rcParams["ps.fonttype"] = 42
+
 
 def read_gaia_table(path: Path) -> pd.DataFrame:
     if path.suffix.lower() == ".parquet":
@@ -120,7 +124,7 @@ def draw_density(ax, H, xedges, yedges, norm):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--gaia", default="gaia_cmd_all.parquet")
+    parser.add_argument("--gaia", default="gaia_cmd_all_plus_dsc_wds.parquet")
     parser.add_argument("--history", default="LOGS_wd_cool/history.data")
     parser.add_argument("--out", default="figures/gaia_wd_cmd_mesa_overlay_apj")
     args = parser.parse_args()
@@ -223,7 +227,7 @@ def main():
         lw=2.4,
         zorder=10,
         #solid_capstyle="round",
-        label="MESA Colors WD cooling track",
+        label="MESA Custom Colors WD cooling track",
     )
 
     ax2.scatter(

@@ -208,3 +208,58 @@
     - inlist: inlist_rsp_RR_Lyrae_header
     - inlist: inlist_rsp_RR_Lyrae_header
     - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae
+      runtime_minutes:  31.17
+      model_number:       131023
+      star_age:     2.8988586448218673E-01
+      num_retries:            3
+      log_rel_run_E_err:        -4.6684393577134875
+      steps:       131023
+      retries:            0
+      redos:            0
+      solver_calls_made:       131023
+      solver_calls_failed:            0
+      solver_iterations:       696036
+    - inlist: inlist_rsp_RR_Lyrae_colors
+    - inlist: inlist_rsp_RR_Lyrae_colors
+    - inlist: inlist_rsp_RR_Lyrae
+    - inlist: inlist_rsp_RR_Lyrae
+      runtime_minutes:  46.41
+      model_number:       131023
+      star_age:     2.8988586448218673E-01
+      num_retries:            3
+      log_rel_run_E_err:        -4.6684393577134875
+      steps:       131023
+      retries:            0
+      redos:            0
+      solver_calls_made:       131023
+      solver_calls_failed:            0
+      solver_iterations:       696036
+    - inlist: inlist_rsp_RR_Lyrae_colors
+    - inlist: inlist_rsp_RR_Lyrae
+    - inlist: inlist_rsp_RR_Lyrae
+    - inlist: inlist_rsp_RR_Lyrae
+    - inlist: inlist_rsp_RR_Lyrae
+      runtime_minutes:  40.47
+      model_number:       131023
+      star_age:     2.8988586448218673E-01
+      num_retries:            3
+      log_rel_run_E_err:        -4.6684393577134875
+      steps:       131023
+      retries:            0
+      redos:            0
+      solver_calls_made:       131023
+      solver_calls_failed:            0
+      solver_iterations:       696036
+    - inlist: inlist_rsp_RR_Lyrae_colors
+      runtime_minutes: 229.65
+      model_number:       204185
+      star_age:     4.4804251602687889E-01
+      num_retries:            8
+      log_rel_run_E_err:        -4.4343749993096857
+      steps:        73162
+      retries:            0
+      redos:            0
+      solver_calls_made:        73162
+      solver_calls_failed:            0
+      solver_iterations:       419791

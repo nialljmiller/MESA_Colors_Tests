@@ -1,0 +1,10 @@
+eval=23
+cq=5.3228
+alfam=0.15244
+teff=6728.45
+lum=49.0954
+period=0.526442 d  (err 0.181%)
+amp_last10_median=1.12309
+vmax_cs_last=7.9671
+shape_rms=0.05576
+objective=0.05576

@@ -1,24 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Two-stage RSP RR Lyrae + Colors demonstration.
-# Stage 1: create and run RSP model until the pulsation is stable by rsp_GREKM.
-# Stage 2: restart from settled.mod, enable Colors and per-model SED output,
-#          then run for 100 additional periods.
-
 source "${MESA_DIR}/star/test_suite/test_suite_helpers"
 
 date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S"
 
 echo "=== Stage 1: settle RSP model without Colors ==="
-do_one inlist settled.mod LOGS_settle
+do_one inlist_rsp_RR_Lyrae settled.mod LOGS_settle
 
 if [[ ! -s settled.mod ]]; then
    echo "ERROR: Stage 1 did not produce settled.mod" >&2
    exit 1
 fi
 
-echo "=== Stage 2: restart settled model with Colors + per-model SEDs ==="
+echo "=== Stage 2: restart settled.mod with Colors + per-model SEDs ==="
 do_one inlist_rsp_RR_Lyrae_colors colors_final.mod LOGS_colors
 
 if [[ ! -s colors_final.mod ]]; then
@@ -26,5 +21,5 @@ if [[ ! -s colors_final.mod ]]; then
    exit 1
 fi
 
-date "+DATE: %Y-%m-%d%nTIME: %H:%M:%S"
+date "+DATE: %Y-%m-%d%nTIME:%H:%M:%S"
 echo "finished two-stage RSP Colors run"

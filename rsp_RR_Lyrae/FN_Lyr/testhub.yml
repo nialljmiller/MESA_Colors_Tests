@@ -1391,3 +1391,337 @@
       solver_calls_made:       129926
       solver_calls_failed:            0
       solver_iterations:       711977
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes: 146.26
+      model_number:       166121
+      star_age:     2.1453042865821739E-01
+      num_retries:           27
+      log_rel_run_E_err:        -4.6215372156608714
+      steps:       166121
+      retries:            0
+      redos:            0
+      solver_calls_made:       166121
+      solver_calls_failed:            0
+      solver_iterations:       935878
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  18.46
+      model_number:       166128
+      star_age:     2.1453054468704313E-01
+      num_retries:           27
+      log_rel_run_E_err:        -4.6215381679911394
+      steps:       166128
+      retries:            0
+      redos:            0
+      solver_calls_made:       166128
+      solver_calls_failed:            0
+      solver_iterations:       935256
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  18.51
+      model_number:       166081
+      star_age:     2.1452262006127656E-01
+      num_retries:           21
+      log_rel_run_E_err:        -4.6249648499861413
+      steps:       166081
+      retries:            0
+      redos:            0
+      solver_calls_made:       166081
+      solver_calls_failed:            0
+      solver_iterations:       926184
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  17.83
+      model_number:       166569
+      star_age:     2.1231346859040248E-01
+      num_retries:           31
+      log_rel_run_E_err:        -4.6128495243838206
+      steps:       166569
+      retries:            0
+      redos:            0
+      solver_calls_made:       166569
+      solver_calls_failed:            0
+      solver_iterations:       945533
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  18.38
+      model_number:       166419
+      star_age:     2.1811459330566008E-01
+      num_retries:           34
+      log_rel_run_E_err:        -4.5979743873256282
+      steps:       166419
+      retries:            0
+      redos:            0
+      solver_calls_made:       166419
+      solver_calls_failed:            0
+      solver_iterations:       941797
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  17.93
+      model_number:       165807
+      star_age:     2.1859927747832270E-01
+      num_retries:           34
+      log_rel_run_E_err:        -4.6205506664405389
+      steps:       165807
+      retries:            0
+      redos:            0
+      solver_calls_made:       165807
+      solver_calls_failed:            0
+      solver_iterations:       923025
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  18.42
+      model_number:       166371
+      star_age:     2.1385221741984059E-01
+      num_retries:           21
+      log_rel_run_E_err:        -4.6143248383489412
+      steps:       166371
+      retries:            0
+      redos:            0
+      solver_calls_made:       166371
+      solver_calls_failed:            0
+      solver_iterations:       941434
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  24.29
+      model_number:       166365
+      star_age:     2.1598333605244138E-01
+      num_retries:           27
+      log_rel_run_E_err:        -4.6080269505203164
+      steps:       166365
+      retries:            0
+      redos:            0
+      solver_calls_made:       166365
+      solver_calls_failed:            0
+      solver_iterations:       936731
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  20.63
+      model_number:       166484
+      star_age:     2.1669741762140010E-01
+      num_retries:           15
+      log_rel_run_E_err:        -4.6011760235599759
+      steps:       166484
+      retries:            0
+      redos:            0
+      solver_calls_made:       166484
+      solver_calls_failed:            0
+      solver_iterations:       937043
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  18.14
+      model_number:       166744
+      star_age:     2.1777445568986900E-01
+      num_retries:           32
+      log_rel_run_E_err:        -4.5858577922233223
+      steps:       166744
+      retries:            0
+      redos:            0
+      solver_calls_made:       166744
+      solver_calls_failed:            0
+      solver_iterations:       951129
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  18.17
+      model_number:       167034
+      star_age:     2.1936764112844717E-01
+      num_retries:           18
+      log_rel_run_E_err:        -4.5665965151553651
+      steps:       167034
+      retries:            0
+      redos:            0
+      solver_calls_made:       167034
+      solver_calls_failed:            0
+      solver_iterations:       958511
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  18.26
+      model_number:       166742
+      star_age:     2.1486920484347888E-01
+      num_retries:           25
+      log_rel_run_E_err:        -4.5970117900354692
+      steps:       166742
+      retries:            0
+      redos:            0
+      solver_calls_made:       166742
+      solver_calls_failed:            0
+      solver_iterations:       944510
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  18.28
+      model_number:       166917
+      star_age:     2.1324884419123408E-01
+      num_retries:           28
+      log_rel_run_E_err:        -4.5961701813387377
+      steps:       166917
+      retries:            0
+      redos:            0
+      solver_calls_made:       166917
+      solver_calls_failed:            0
+      solver_iterations:       944798
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  22.33
+      model_number:       167060
+      star_age:     2.1561426978146989E-01
+      num_retries:           35
+      log_rel_run_E_err:        -4.5814638453443424
+      steps:       167060
+      retries:            0
+      redos:            0
+      solver_calls_made:       167060
+      solver_calls_failed:            0
+      solver_iterations:       956512
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  27.16
+      model_number:       167389
+      star_age:     2.1542441043457278E-01
+      num_retries:           38
+      log_rel_run_E_err:        -4.5685265856209289
+      steps:       167389
+      retries:            0
+      redos:            0
+      solver_calls_made:       167389
+      solver_calls_failed:            0
+      solver_iterations:       971311
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  25.48
+      model_number:       167208
+      star_age:     2.1435559070377044E-01
+      num_retries:           43
+      log_rel_run_E_err:        -4.5780147888519993
+      steps:       167208
+      retries:            0
+      redos:            0
+      solver_calls_made:       167208
+      solver_calls_failed:            0
+      solver_iterations:       972073
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  29.38
+      model_number:       167670
+      star_age:     2.1735542571387526E-01
+      num_retries:           22
+      log_rel_run_E_err:        -4.5475141421385832
+      steps:       167670
+      retries:            0
+      redos:            0
+      solver_calls_made:       167670
+      solver_calls_failed:            0
+      solver_iterations:       994112
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  26.59
+      model_number:       166722
+      star_age:     2.1476737789160547E-01
+      num_retries:           30
+      log_rel_run_E_err:        -4.5975636543386802
+      steps:       166722
+      retries:            0
+      redos:            0
+      solver_calls_made:       166722
+      solver_calls_failed:            0
+      solver_iterations:       949507
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  21.30
+      model_number:       166662
+      star_age:     2.1714015902159317E-01
+      num_retries:           23
+      log_rel_run_E_err:        -4.5926954606391357
+      steps:       166662
+      retries:            0
+      redos:            0
+      solver_calls_made:       166662
+      solver_calls_failed:            0
+      solver_iterations:       943754
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  21.66
+      model_number:       166807
+      star_age:     2.1642551039239200E-01
+      num_retries:           27
+      log_rel_run_E_err:        -4.5886264089471602
+      steps:       166807
+      retries:            0
+      redos:            0
+      solver_calls_made:       166807
+      solver_calls_failed:            0
+      solver_iterations:       948723
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  21.96
+      model_number:       166597
+      star_age:     2.1209414020555079E-01
+      num_retries:           26
+      log_rel_run_E_err:        -4.6131490934309216
+      steps:       166597
+      retries:            0
+      redos:            0
+      solver_calls_made:       166597
+      solver_calls_failed:            0
+      solver_iterations:       939276
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  21.81
+      model_number:       166964
+      star_age:     2.1717393733383863E-01
+      num_retries:           29
+      log_rel_run_E_err:        -4.5783735570388924
+      steps:       166964
+      retries:            0
+      redos:            0
+      solver_calls_made:       166964
+      solver_calls_failed:            0
+      solver_iterations:       952747
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  21.62
+      model_number:       167144
+      star_age:     2.1646066510672640E-01
+      num_retries:           28
+      log_rel_run_E_err:        -4.5750862287377823
+      steps:       167144
+      retries:            0
+      redos:            0
+      solver_calls_made:       167144
+      solver_calls_failed:            0
+      solver_iterations:       951412
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  21.84
+      model_number:       167325
+      star_age:     2.1732385228782314E-01
+      num_retries:           18
+      log_rel_run_E_err:        -4.5647566613914474
+      steps:       167325
+      retries:            0
+      redos:            0
+      solver_calls_made:       167325
+      solver_calls_failed:            0
+      solver_iterations:       954552
+    - inlist: inlist_rsp_RR_Lyrae_header
+      runtime_minutes:  21.63
+      model_number:       167219
+      star_age:     2.1483501979726641E-01
+      num_retries:           23
+      log_rel_run_E_err:        -4.5771681240813011
+      steps:       167219
+      retries:            0
+      redos:            0
+      solver_calls_made:       167219
+      solver_calls_failed:            0
+      solver_iterations:       959502
+    - inlist: inlist_rsp_RR_Lyrae_header

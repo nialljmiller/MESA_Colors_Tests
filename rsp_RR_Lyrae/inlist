@@ -1,32 +1,84 @@
-! Main inlist for two-stage RSP RR Lyrae + Colors demonstration
-! Stage 1 is the settling run.  The rn script then launches Stage 2.
+! STAGE 2: restart from settled.mod, enable Colors, write per-model SEDs,
+! and run for 100 additional completed pulsation periods.
+!
+! Termination is controlled by src/run_star_extras.f90:
+!   x_integer_ctrl(1) = 2       -> Colors production mode
+!   x_integer_ctrl(5) = 100     -> additional completed periods to run after restart
 
 &star_job
-      read_extra_star_job_inlist(1) = .true.
-      extra_star_job_inlist_name(1) = 'inlist_rsp_RR_Lyrae'
+      show_log_description_at_start = .false.
+
+      create_RSP_model = .false.
+      load_saved_model = .true.
+      load_model_filename = 'settled.mod'
+
+      save_model_when_terminate = .true.
+      save_model_filename = 'colors_final.mod'
+
+      history_columns_file = 'history_columns_colors.list'
+      profile_columns_file = 'profile_columns.list'
 / ! end of star_job namelist
 
 &eos
-      read_extra_eos_inlist(1) = .true.
-      extra_eos_inlist_name(1) = 'inlist_rsp_RR_Lyrae'
 / ! end of eos namelist
 
 &kap
-      read_extra_kap_inlist(1) = .true.
-      extra_kap_inlist_name(1) = 'inlist_rsp_RR_Lyrae'
+      Zbase = 0.0004d0
+      kap_file_prefix = 'a09'
+      kap_lowT_prefix = 'lowT_fa05_a09p'
+      kap_CO_prefix = 'a09_co'
 / ! end of kap namelist
 
 &controls
-      read_extra_controls_inlist(1) = .true.
-      extra_controls_inlist_name(1) = 'inlist_rsp_RR_Lyrae'
+      max_model_number = 4000000
+      use_gold2_tolerances = .true.
+
+      ! Keep the same physical RSP parameters as the settled model.
+      RSP_mass = 0.65d0
+      RSP_Teff = 6600d0
+      RSP_L = 50d0
+      RSP_X = 0.75d0
+      RSP_Z = 0.0004d0
+
+      ! extras mode and production-run length
+      x_integer_ctrl(1) = 2          ! 2 = run Colors for N additional periods
+      x_integer_ctrl(5) = 100        ! number of additional completed periods
+
+      ! Fast but still phase-resolved.  With history_interval=1 and per-model
+      ! SED writing this will create a lot of files; see notes in the answer.
+      RSP_target_steps_per_cycle = 100
+      RSP_max_dt = 600d0
+      RSP_kick_vsurf_km_per_sec = 0.0d0
+
+      history_interval = 1
+      photo_interval = 5000
+      profile_interval = 5000
+      terminal_interval = 500
+
+      terminal_show_age_units = 'days'
+      terminal_show_timestep_units = 'secs'
+      terminal_show_log_dt = .false.
+      terminal_show_log_age = .false.
+
+      trace_history_value_name(1) = 'rel_E_err'
+      trace_history_value_name(2) = 'log_rel_run_E_err'
 / ! end of controls namelist
 
 &colors
-      read_extra_colors_inlist(1) = .true.
-      extra_colors_inlist_name(1) = 'inlist_rsp_RR_Lyrae'
+      use_colors = .true.
+
+      instrument = '/home/njm/SED_Tools/data/filters/Roman/WFI'
+      mag_system = 'AB'
+      vega_sed = 'data/colors_data/stellar_models/vega_flam.csv'
+      stellar_atm = '/home/njm/SED_Tools/data/stellar_models/Kurucz2003all/'
+
+      ! 10 pc, so the reported magnitudes are absolute magnitudes.
+      distance = 3.0857d19
+
+      colors_results_directory = 'SED'
+      make_csv = .true.
+      sed_per_model = .true.
 / ! end of colors namelist
 
 &pgstar
-      read_extra_pgstar_inlist(1) = .true.
-      extra_pgstar_inlist_name(1) = 'inlist_rsp_RR_Lyrae'
 / ! end of pgstar namelist

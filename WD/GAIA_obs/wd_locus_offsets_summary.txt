@@ -1,0 +1,33 @@
+White dwarf Gaia-locus comparison
+===================================
+
+Gaia input:       gaia_cmd_all_plus_dsc_wds.parquet
+MESA history:     LOGS_wd_cool/history.data
+Gaia selection:   wd_prob >= 0.5 plus CMD window
+Model reference:  median mg
+Magnitude bins:   9 <= M_G <= 15, width 1 mag
+
+Bins compared:                    6
+Gaia WD points selected:          62,254
+Gaia WD points used in bins:      61,086
+Compared M_G range:               9.00--15.00
+Model M_G range:                  8.509--14.963
+
+median |Delta(G_BP-G_RP)|:        0.0863 mag
+mean |Delta(G_BP-G_RP)|:          0.1089 mag
+RMS Delta(G_BP-G_RP):             0.1336 mag
+max |Delta(G_BP-G_RP)|:           0.2732 mag
+weighted mean |Delta|:            0.0591 mag
+weighted RMS Delta:               0.0644 mag
+
+Paper-ready sentence:
+Across $M_G = 9$--$15$, the binned Gaia white-dwarf locus and the $0.6\,M_\odot$ DA Colors track differ by a median absolute color offset of $0.086$ mag, with an RMS offset of $0.134$ mag and a maximum bin-wise offset of $0.273$ mag.
+
+Bin table:
+ M_G_lo  M_G_hi  M_G_mid  M_G_median_gaia  M_G_reference  N_gaia  N_gaia_used  gaia_bp_rp_median  gaia_bp_rp_mad  model_bp_rp  delta_bp_rp_model_minus_gaia  abs_delta_bp_rp
+ 9.0000 10.0000   9.5000           9.6062         9.6062    2424         2318            -0.3726          0.0911      -0.4750                       -0.1024           0.1024
+10.0000 11.0000  10.5000          10.7086        10.7086   11391        11090            -0.2289          0.0872      -0.2991                       -0.0702           0.0702
+11.0000 12.0000  11.5000          11.5110        11.5110   28199        27916            -0.0679          0.1152      -0.1088                       -0.0409           0.0409
+12.0000 13.0000  12.5000          12.3784        12.3784   14798        14503             0.1274          0.1303       0.1844                        0.0570           0.0570
+13.0000 14.0000  13.5000          13.3294        13.3294    5150         4984             0.3617          0.1455       0.4717                        0.1100           0.1100
+14.0000 15.0000  14.5000          14.1038        14.1038     292          275             0.4847          0.1214       0.7578                        0.2732           0.2732

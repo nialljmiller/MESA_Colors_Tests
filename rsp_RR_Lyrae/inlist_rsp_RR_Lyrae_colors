@@ -10,7 +10,7 @@
 
       create_RSP_model = .false.
       load_saved_model = .true.
-      saved_model_name = 'settled.mod'
+      load_model_filename = 'settled.mod'
 
       save_model_when_terminate = .true.
       save_model_filename = 'colors_final.mod'
@@ -67,10 +67,10 @@
 &colors
       use_colors = .true.
 
-      instrument = 'data/colors_data/filters/Roman/WFI'
+      instrument = '/home/njm/SED_Tools/data/filters/Roman/WFI'
       mag_system = 'AB'
       vega_sed = 'data/colors_data/stellar_models/vega_flam.csv'
-      stellar_atm = 'data/colors_data/stellar_models/Kurucz2003all/'
+      stellar_atm = '/home/njm/SED_Tools/data/stellar_models/Kurucz2003all/'
 
       ! 10 pc, so the reported magnitudes are absolute magnitudes.
       distance = 3.0857d19
