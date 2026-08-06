@@ -4,7 +4,7 @@ ApJ-quality FN Lyr light-curve comparison figure.
 
 Two stacked panels sharing the x-axis with no vertical gap:
   - top (2 height units): observed binned Kepler light curve + best-fit
-    MESA RSP+Colors model, both over two pulsation phases
+    MESA RSP + MESA Custom Colors model, both over two pulsation phases
   - bottom (1 height unit): residuals (observed - model) over two phases
 
 The model is aligned to the data by the only two physically-arbitrary
@@ -40,7 +40,7 @@ OBS_AMP = 1.0464
 # Cycle-selection guards (match the comparison script).
 MIN_POINTS_PER_CYCLE = 250
 MIN_PHASE_SPAN = 0.80
-SEARCH_LAST_N_CYCLES = 40
+SEARCH_LAST_N_CYCLES = 10
 N_SHIFTS = 2500
 
 
@@ -57,6 +57,7 @@ def read_history(path: Path) -> pd.DataFrame:
 def get_mag_col(h: pd.DataFrame) -> str:
     for c in ("Kepler", "K"):
         if c in h.columns:
+            print(h.columns)
             return c
     cand = [c for c in h.columns if "kepler" in c.lower() or c.lower() in {"kp", "kplr"}]
     if cand:
@@ -139,6 +140,9 @@ def main():
         "ytick.minor.visible": True,
         "legend.frameon": False,
         "figure.dpi": 150,
+        # ApJ requires embedded Type 42 (TrueType) fonts, not Type 3 bitmaps.
+        "pdf.fonttype": 42,
+        "ps.fonttype": 42,
     })
 
     obs = pd.read_csv(args.obs)
@@ -171,6 +175,8 @@ def main():
     rr2 = np.concatenate([resid, resid])
 
     model_amp = float(np.nanmax(model_mag) - np.nanmin(model_mag))
+    model_cycle = h[h["rsp_num_periods"].astype(int) == al["cycle"]]
+    model_period = float(np.nanmedian(model_cycle["rsp_period_in_days"]))
     mad = float(np.nanmedian(np.abs(resid)))
     # shape correlation after mean subtraction (no amplitude rescale)
     pred = m_at_obs + al["offset"]
@@ -185,18 +191,17 @@ def main():
 
     # Light-curve panel.
     ax_lc.plot(op2, om2, ".", ms=3.0, color="#3b6ea5", alpha=0.85,
-               label="FN\\,Lyr / KIC\\,6936115 (Kepler)", rasterized=True)
+               label="FN Lyr / KIC 6936115 (Kepler)", rasterized=True)
     ax_lc.plot(mp2, mm2, "-", lw=1.6, color="#d1622b",
-               label="MESA RSP + Colors")
+               label="MESA RSP + MESA Custom Colors")
     ax_lc.invert_yaxis()
     ax_lc.set_ylabel("Relative Kepler magnitude")
-    ax_lc.legend(loc="upper right", fontsize=8.5, handlelength=1.6)
+    ax_lc.legend(loc="upper center", fontsize=8.5, handlelength=1.6)
     plt.setp(ax_lc.get_xticklabels(), visible=False)
 
     # Annotation block with the headline numbers.
-    txt = (f"$P_{{\\rm obs}} = {P_OBS:.6f}$ d\n"
-           f"$A_{{\\rm obs}} = {OBS_AMP:.3f}$, $A_{{\\rm mod}} = {model_amp:.3f}$ mag\n"
-           f"$r = {corr:.3f}$, MAD $= {mad:.3f}$ mag")
+    txt = (f"$P_{{\\rm obs}} = {P_OBS:.6f}$, $P_{{\\rm mod}} = {model_period:.6f}$ d\n"
+           f"$A_{{\\rm obs}} = {OBS_AMP:.3f}$, $A_{{\\rm mod}} = {model_amp:.3f}$ mag")
     ax_lc.text(0.015, 0.04, txt, transform=ax_lc.transAxes, fontsize=7.8,
                va="bottom", ha="left",
                bbox=dict(boxstyle="round,pad=0.35", fc="white", ec="0.7", lw=0.6))
@@ -220,7 +225,7 @@ def main():
     fig.savefig(png, bbox_inches="tight", dpi=250)
 
     print(f"cycle={al['cycle']}  shift={al['shift']:.4f}  offset={al['offset']:.4f}")
-    print(f"model_amp={model_amp:.4f}  r={corr:.4f}  MAD={mad:.4f}  RMS={al['rms']:.4f}")
+    print(f"model_period={model_period:.6f}  model_amp={model_amp:.4f}  r={corr:.4f}  MAD={mad:.4f}  RMS={al['rms']:.4f}")
     print(f"wrote {args.out} and {png}")
 
 

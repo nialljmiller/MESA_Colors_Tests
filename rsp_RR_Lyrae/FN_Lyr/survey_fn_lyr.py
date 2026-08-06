@@ -40,6 +40,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# ApJ requires embedded Type 42 (TrueType) fonts, not Type 3 bitmaps.
+plt.rcParams["pdf.fonttype"] = 42
+plt.rcParams["ps.fonttype"] = 42
+
 
 # ---- observed reference (Nemec et al. 2011) -------------------------------
 P_OBS = 0.527398471
@@ -321,16 +325,16 @@ def main():
                s=18, color="0.6", marker="x", label="simplex evals (period/amp only)")
     ax.axvline(2.0, ls=":", color="0.4", lw=0.8)
     ax.axhline(5.0, ls=":", color="0.4", lw=0.8)
-    ax.set_xlabel("period error (\\%)")
-    ax.set_ylabel("amplitude error (\\%)")
-    cb = fig.colorbar(sc)
+    ax.set_xlabel("period error (%)",fontsize=12)
+    ax.set_ylabel("amplitude error (%)",fontsize=12)
+    cb = fig.colorbar(sc, pad=0.02)
     cb.set_label("morphology score (lower = better)")
-    ax.legend(loc="upper right", fontsize=8, frameon=False)
-    ax.set_title("FN Lyr campaign: period / amplitude / morphology trade-off")
+    ax.legend(loc="upper right", fontsize=12, frameon=False)
     fig.tight_layout()
     fig.savefig(args.out_fig, bbox_inches="tight")
-    fig.savefig(str(Path(args.out_fig).with_suffix(".png")), dpi=200, bbox_inches="tight")
-    print(f"Trade-off plot -> {args.out_fig}")
+    png = str(Path(args.out_fig).with_suffix(".png"))
+    fig.savefig(png, bbox_inches="tight", dpi=250)
+    print(f"Trade-off plot -> {args.out_fig} and {png}")
 
 
 if __name__ == "__main__":
